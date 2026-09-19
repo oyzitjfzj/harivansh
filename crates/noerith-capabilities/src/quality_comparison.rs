@@ -333,7 +333,7 @@ fn verify_trial_population(
                 trial_set.trial_set_ref().to_string(),
             ));
         }
-        let evidence_ref = trial_set.content_digest().value.clone();
+        let evidence_ref = trial_set.verification_digest().value.clone();
         if !refs.insert(evidence_ref.clone()) {
             return Err(Q07ComparisonAnalysisError::DuplicateTrialEvidence(
                 evidence_ref.to_string(),
@@ -351,12 +351,24 @@ fn verify_configuration_binding_population(
     if bindings.is_empty() {
         return Err(Q07ComparisonAnalysisError::MissingConfigurationBindings);
     }
-    let mut bound_trial_refs = BTreeSet::new();
+    let mut raw_trial_identities = BTreeSet::new();
+    let mut bound_trial_evidence_refs = BTreeSet::new();
     for binding in bindings {
-        let trial_ref = binding.trial_set_digest().value.clone();
-        if !bound_trial_refs.insert(trial_ref.clone()) {
+        let raw_identity = (
+            binding.trial_set_ref().clone(),
+            binding.trial_set_digest().algorithm_ref.clone(),
+            binding.trial_set_digest().value.clone(),
+        );
+        if !raw_trial_identities.insert(raw_identity) {
             return Err(Q07ComparisonAnalysisError::DuplicateConfigurationBinding(
-                trial_ref.to_string(),
+                binding.trial_set_ref().to_string(),
+            ));
+        }
+
+        let trial_evidence_ref = binding.trial_evidence_digest().value.clone();
+        if !bound_trial_evidence_refs.insert(trial_evidence_ref.clone()) {
+            return Err(Q07ComparisonAnalysisError::DuplicateConfigurationBinding(
+                trial_evidence_ref.to_string(),
             ));
         }
         if binding.configuration_manifest_ref() != &manifest.manifest_ref
@@ -369,7 +381,7 @@ fn verify_configuration_binding_population(
             );
         }
     }
-    if &bound_trial_refs != trial_evidence_refs {
+    if &bound_trial_evidence_refs != trial_evidence_refs {
         return Err(Q07ComparisonAnalysisError::ConfigurationBindingTrialPopulationMismatch);
     }
     Ok(())
