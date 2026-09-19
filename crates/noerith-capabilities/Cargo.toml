@@ -1,0 +1,12 @@
+[package]
+name = "noerith-capabilities"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98.1"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+sha2 = { version = "=0.11.0", default-features = false }
