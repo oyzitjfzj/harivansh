@@ -1,0 +1,17 @@
+name: S05 hermetic qualification
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  hermetic:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust
+        run: |
+          rustup toolchain install 1.98.1 --profile minimal --component rustfmt,clippy
+          rustup override set 1.98.1
+      - name: Full isolated S05 qualification
+        run: python3 tools/verify_isolated_pinned_crate_hermetic.py crates/noerith-capabilities
