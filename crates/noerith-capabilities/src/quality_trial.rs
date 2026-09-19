@@ -125,9 +125,6 @@ impl ExactGradeEvidenceIdentity {
         }
     }
 
-    pub(crate) fn grade_ref(&self) -> &Reference {
-        &self.grade_ref
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
