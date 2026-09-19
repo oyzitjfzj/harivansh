@@ -552,9 +552,22 @@ fn verify_q07_configuration_binding_population(
         .ok_or(S05StageQualificationError::MissingQ07ConfigurationBindings)?;
     let manifest_ref = first.configuration_manifest_ref().clone();
     let manifest_digest = first.configuration_manifest_digest().clone();
+    let mut raw_trial_identities = BTreeSet::new();
     let mut trial_evidence_refs = BTreeSet::new();
+
     for binding in bindings {
-        let trial_evidence_ref = binding.trial_set_digest().value.clone();
+        let raw_identity = (
+            binding.trial_set_ref().clone(),
+            binding.trial_set_digest().algorithm_ref.clone(),
+            binding.trial_set_digest().value.clone(),
+        );
+        if !raw_trial_identities.insert(raw_identity) {
+            return Err(S05StageQualificationError::DuplicateQ07TrialBinding(
+                binding.trial_set_ref().to_string(),
+            ));
+        }
+
+        let trial_evidence_ref = binding.trial_evidence_digest().value.clone();
         if !trial_evidence_refs.insert(trial_evidence_ref.clone()) {
             return Err(S05StageQualificationError::DuplicateQ07TrialBinding(
                 trial_evidence_ref.to_string(),
@@ -829,14 +842,22 @@ fn compute_composition_digest(
 
     let mut bindings = q07_configuration_bindings.iter().collect::<Vec<_>>();
     bindings.sort_by(|left, right| {
-        left.trial_set_digest()
-            .value
-            .cmp(&right.trial_set_digest().value)
+        (
+            left.trial_set_ref().as_str(),
+            left.trial_set_digest().value.as_str(),
+            left.trial_evidence_digest().value.as_str(),
+        )
+            .cmp(&(
+                right.trial_set_ref().as_str(),
+                right.trial_set_digest().value.as_str(),
+                right.trial_evidence_digest().value.as_str(),
+            ))
     });
     encoder.count(bindings.len())?;
     for binding in bindings {
         encoder.reference(binding.trial_set_ref())?;
         encoder.digest(binding.trial_set_digest())?;
+        encoder.digest(binding.trial_evidence_digest())?;
         encoder.reference(binding.configuration_manifest_ref())?;
         encoder.digest(binding.configuration_manifest_digest())?;
     }
