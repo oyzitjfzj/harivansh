@@ -18,3 +18,4 @@ jobs:
           candidate="$RUNNER_TEMP/noerith-capabilities"
           cp -R crates/noerith-capabilities "$candidate"
           cargo test --manifest-path "$candidate/Cargo.toml" --test quality_trial_evidence_binding -- --nocapture
+          cargo test --manifest-path "$candidate/Cargo.toml" --test quality_trial_configuration -- --nocapture
