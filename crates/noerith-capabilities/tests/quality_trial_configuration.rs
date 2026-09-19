@@ -154,9 +154,10 @@ fn trial_for(
     }
 }
 
-fn grade_for_trial(
+fn grade_for_trial_with_evidence(
     plan: &EvidenceGraderPlan,
     trial: &QualityTrialRecord,
+    criterion_evidence_ref: &str,
 ) -> noerith_capabilities::VerifiedGradeRecord {
     let grader = qualified_grader(plan);
     let subject = GradeSubject {
@@ -188,7 +189,7 @@ fn grade_for_trial(
         criterion_results: vec![CriterionGrade {
             criterion_ref: r("grader:criterion"),
             status: EvidenceStatus::Pass,
-            evidence_refs: refs(&["evidence:grade"]),
+            evidence_refs: refs(&[criterion_evidence_ref]),
         }],
         provenance_refs: refs(&["provenance:grade"]),
         validity_ref: r("validity:grade"),
@@ -196,6 +197,14 @@ fn grade_for_trial(
     verify_grade_record(&grader, &request, &record).unwrap()
 }
 
+fn grade_for_trial(
+    plan: &EvidenceGraderPlan,
+    trial: &QualityTrialRecord,
+) -> noerith_capabilities::VerifiedGradeRecord {
+    grade_for_trial_with_evidence(plan, trial, "evidence:grade")
+}
+
+#[derive(Clone)]
 struct BindingFixture {
     plan: QualityFloorPlan,
     manifest: CandidateConfigurationManifest,
@@ -423,6 +432,14 @@ fn q07_binding_proves_every_preregistered_configuration_across_all_six_regimes()
             .value
             .clone(),
     );
+    assert_eq!(
+        verified.trial_set_digest(),
+        fixture.verified_trial_set.content_digest(),
+    );
+    assert_eq!(
+        verified.trial_evidence_digest(),
+        fixture.verified_trial_set.verification_digest(),
+    );
 }
 
 #[test]
@@ -529,4 +546,68 @@ fn q07_population_allows_exact_corpus_environment_reuse_when_execution_identity_
     )
     .unwrap();
     assert_eq!(verified.trial_evidence_refs().len(), 2);
+}
+
+#[test]
+fn q07_same_raw_trial_set_with_changed_verified_grade_content_gets_new_evidence_identity() {
+    let fixture = binding_fixture(|_| {});
+    let baseline = verify_binding(&fixture).unwrap();
+
+    let alternate_grades: Vec<_> = fixture
+        .trial_set
+        .trials
+        .iter()
+        .enumerate()
+        .map(|(index, trial)| {
+            if index == 0 {
+                grade_for_trial_with_evidence(
+                    &fixture.grader_plan,
+                    trial,
+                    "evidence:grade:alternate-valid-content",
+                )
+            } else {
+                grade_for_trial(&fixture.grader_plan, trial)
+            }
+        })
+        .collect();
+    let verified_plan = verify_quality_floor_plan(&fixture.plan).unwrap();
+    let alternate_verified_trial_set = verify_quality_trial_set(
+        &fixture.plan,
+        &verified_plan,
+        &fixture.trial_set,
+        QualityTrialVerificationEvidence {
+            corpora: &fixture.verified_corpora,
+            grades: &alternate_grades,
+            environments: core::slice::from_ref(&fixture.environment),
+        },
+    )
+    .unwrap();
+
+    assert_eq!(
+        alternate_verified_trial_set.content_digest(),
+        fixture.verified_trial_set.content_digest(),
+        "raw preregistered trial identity must stay stable",
+    );
+    assert_ne!(
+        alternate_verified_trial_set.verification_digest(),
+        fixture.verified_trial_set.verification_digest(),
+        "verified evidence composition must change with valid grade content",
+    );
+
+    let alternate_binding = verify_q07_trial_configuration_binding(
+        &fixture.plan,
+        &fixture.trial_set,
+        &alternate_verified_trial_set,
+        &fixture.manifest,
+        &fixture.verified_manifest,
+    )
+    .unwrap();
+    assert_eq!(
+        alternate_binding.trial_set_digest(),
+        baseline.trial_set_digest(),
+    );
+    assert_ne!(
+        alternate_binding.trial_evidence_digest(),
+        baseline.trial_evidence_digest(),
+    );
 }
