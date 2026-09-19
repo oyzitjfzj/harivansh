@@ -23,6 +23,7 @@ use core::fmt;
 pub struct VerifiedQualityTrialConfigurationBinding {
     trial_set_ref: Reference,
     trial_set_digest: ContentDigest,
+    trial_evidence_digest: ContentDigest,
     configuration_manifest_ref: Reference,
     configuration_manifest_digest: ContentDigest,
     configuration_identities: BTreeSet<(Reference, OpaqueVersion)>,
@@ -36,6 +37,10 @@ impl VerifiedQualityTrialConfigurationBinding {
 
     pub fn trial_set_digest(&self) -> &ContentDigest {
         &self.trial_set_digest
+    }
+
+    pub fn trial_evidence_digest(&self) -> &ContentDigest {
+        &self.trial_evidence_digest
     }
 
     pub fn configuration_manifest_ref(&self) -> &Reference {
@@ -212,6 +217,7 @@ pub fn verify_q07_trial_configuration_binding(
     Ok(VerifiedQualityTrialConfigurationBinding {
         trial_set_ref: trial_set.trial_set_ref.clone(),
         trial_set_digest: current_trial_digest,
+        trial_evidence_digest: verified_trial_set.verification_digest().clone(),
         configuration_manifest_ref: verified_manifest.manifest_ref().clone(),
         configuration_manifest_digest: verified_manifest.content_digest().clone(),
         configuration_identities: used_configurations,
