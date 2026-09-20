@@ -1,0 +1,18 @@
+{
+  "interrupt_id": "interrupt-1",
+  "type": "cancel",
+  "issuer_principal_context": {"ref": "principal-context-1", "digest": {"algorithm": "sha256", "value": "principal-digest"}},
+  "target_work_refs": ["work-1"],
+  "target_effect_intent_refs": ["effect-1"],
+  "requested_boundary": "future-dispatch",
+  "correction_desired_state_ref": null,
+  "causation_id": "cause-1",
+  "causal_parents": ["event-0"],
+  "occurred_at": {"utc_timestamp": "2026-09-09T00:00:00Z", "uncertainty_before": "PT0S", "uncertainty_after": "PT0S", "clock_source": "clock-1", "synchronization_state": "synced"},
+  "observed_at": {"utc_timestamp": "2026-09-09T00:00:01Z", "uncertainty_before": "PT0S", "uncertainty_after": "PT0S", "clock_source": "clock-1", "synchronization_state": "synced"},
+  "logical_stamp": {"stream_ref": "stream-1", "stream_sequence": 2, "aggregate_revision": 7, "vector_frontier_ref": null},
+  "authentication_authority_evidence": {"ref": "authority-evidence-1"},
+  "reason_code": "USER_CANCEL",
+  "handling_state": "received",
+  "handling_evidence_refs": []
+}

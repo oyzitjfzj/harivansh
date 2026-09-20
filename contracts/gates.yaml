@@ -1,0 +1,187 @@
+version: 0.1.0
+project: NOERITH
+catalog: frozen_acceptance_gates
+source: master_implementation_blueprint_appendix_b
+implementation_evidence_default: not_run
+name_normalization: Historical working-name wording is normalized to NOERITH.
+gates:
+  G01:
+    requirement: Exact original user source preserved
+    owner: 06/07; sections 5–6
+    evidence: Byte/span retrieval and source/transcript distinction; lifecycle exceptions explicit.
+  G02:
+    requirement: Later correction supersedes clearly
+    owner: 08/09/11; 6.7/7.1
+    evidence: Correction replay and affected-task invalidation.
+  G03:
+    requirement: Summary failure can recover evidence
+    owner: 06/13/14; 6.6
+    evidence: Corrupt/omitted summary with exact-source recovery or truthful deleted-source status.
+  G04:
+    requirement: Session/context limit preserves continuity
+    owner: 07/12/34; 6.6/13.5
+    evidence: Fresh-session resume from real checkpoint and artifacts.
+  G05:
+    requirement: Goals/work are durable separate objects
+    owner: 08/12/17; 5.5/7.2
+    evidence: Restart with independent goal/work identities and revisions.
+  G06:
+    requirement: Simple default product experience
+    owner: 01/02/04/05/19; 9.1/10.2
+    evidence: Users perform tasks without learning organ/model/tool internals.
+  G07:
+    requirement: Meaningful manual override
+    owner: 05/19/22/35; 7.6
+    evidence: Override honored within capability/policy limits; quality tradeoff visible.
+  G08:
+    requirement: Explain actual capability map
+    owner: 05/23; 8.1
+    evidence: Availability and capability explanation matches qualified manifests.
+  G09:
+    requirement: Unrelated work survives new request
+    owner: 15/17/18; 7.1/7.5
+    evidence: Concurrent semantic scenarios and paraphrases.
+  G10:
+    requirement: Parallel expert state is safe
+    owner: 20/21; 5.4/7.5
+    evidence: Conflicting proposals, CAS/fence and branch-merge tests.
+  G11:
+    requirement: Resolve all principal/account identities
+    owner: 03; 5.2
+    evidence: Namespace/speaker/controller/actor/device/target audit reconstruction.
+  G12:
+    requirement: Uncertain principal fails closed
+    owner: 03/10/28/29; 5.2
+    evidence: Shared-device, wrong account and unresolved-speaker negative tests.
+  G13:
+    requirement: Delegation is scoped and revocable
+    owner: 03/28; 5.3
+    evidence: Non-amplification, expiry, revocation and chain properties.
+  G14:
+    requirement: Coding done has execution proof
+    owner: 24/32/37; 9.3
+    evidence: Exact revision build/run/behavior or explicit unverified result.
+  G15:
+    requirement: Research proof has source/freshness
+    owner: 06/19/32/37; 9.2
+    evidence: Claim-source audit, coverage and contradiction/freshness review.
+  G16:
+    requirement: Exact action target/payload/intent checked
+    owner: 25/28/30; 5.2/8.3
+    evidence: Mutated target/account/payload invalidates approval.
+  G17:
+    requirement: High-impact consequences considered
+    owner: 26; 8.4
+    evidence: Domain hazard/dry-run cases with uncertainty and limits.
+  G18:
+    requirement: External content never authority
+    owner: 29; 6.2/8.1
+    evidence: Tool/document/memory injection cannot grant scope or redirect protected effects.
+  G19:
+    requirement: Scoped permissions, brokered secrets
+    owner: 03/28/29; 5.3
+    evidence: Secret-flow and out-of-scope handle denial tests.
+  G20:
+    requirement: Policy independently passes
+    owner: 27/28; 5.3
+    evidence: Consent yes/policy no and policy yes/authority no cases.
+  G21:
+    requirement: Policy conflicts are explicit
+    owner: 27; 5.3
+    evidence: Versioned conflict/error/obligation corpus and safe explanation.
+  G22:
+    requirement: Recovery prevents supported duplicates
+    owner: 30/34; 8.2–8.3
+    evidence: Provider-class fault traces; unsupported ambiguity never blindly repeated.
+  G23:
+    requirement: Actual outcome observed
+    owner: 31; 8.4
+    evidence: Independent target/receipt evidence and delayed/false success cases.
+  G24:
+    requirement: Completion needs evidence
+    owner: 32; 8.4
+    evidence: Missing/forged/stale/partial evidence cannot produce done.
+  G25:
+    requirement: Every output gets appropriate check
+    owner: 14/25/37; 8.4
+    evidence: Lightweight public path plus deeper private/code/effect paths.
+  G26:
+    requirement: No silent quality cut for resources
+    owner: 35/37; 7.6/10.3
+    evidence: Budget/heat pressure preserves floor or exposes real conflict.
+  G27:
+    requirement: Coherent cross-device state
+    owner: 21/34/36; 3.3
+    evidence: Partition/migration/rejoin with one protected owner and source continuity.
+  G28:
+    requirement: Private correctable/forgettable memory
+    owner: 09/10; section 6
+    evidence: Purpose, correction, deletion, export and per-copy receipt tests.
+  G29:
+    requirement: Detect unhealthy internal work
+    owner: 33/36; 8.5/10.2
+    evidence: Deadlock, false heartbeat, no progress, missed wake and supervisor loss.
+  G30:
+    requirement: Quarantine/recover without blind retry
+    owner: 30/33/34; 8.5
+    evidence: Unhealthy worker loses dispatch eligibility; unknown effects reconciled.
+  G31:
+    requirement: Known model/tool/skill provenance
+    owner: 22/23/39; 8.1/10.5
+    evidence: Version/digest/signature/revocation and qualified behavior evidence.
+  G32:
+    requirement: Generated skills pass eval/rollback
+    owner: 39; 11.4
+    evidence: Sandbox, capability diff, held-out promotion and rollback drill.
+  G33:
+    requirement: Domain quality measured separately
+    owner: 37; 11.2
+    evidence: Six independent scorecards and registered quality floors.
+  G34:
+    requirement: Live view is real work
+    owner: 05/32; 8.4
+    evidence: UI status-to-event conformance, artifact/evidence links, no fake progress.
+  G35:
+    requirement: User can pause/cancel/inspect/control
+    owner: 02/05/28/30; 8.2/10.2
+    evidence: Before-release and after-acceptance cases, accessible equivalent controls.
+  G36:
+    requirement: Uncertainty remains honest
+    owner: 11/26/31/32; 8.4
+    evidence: Unsupported claim, partial observation and ambiguous effect outcomes.
+  G37:
+    requirement: Personal without manipulation
+    owner: 04/10/37; 1.1/9.1
+    evidence: Useful personalization, autonomy-respecting UX and no dependency pressure.
+  G38:
+    requirement: Examples generalized, not phrase rules
+    owner: 15/16/18/37; 7.1/9.7
+    evidence: Paraphrase, context reversal and unseen-domain scenario families.
+  G39:
+    requirement: Whole trajectory integrity
+    owner: 08/15/17/25; 7.4
+    evidence: Slow cumulative drift, correction and policy-change cases.
+  G40:
+    requirement: Complete lineage and lifecycle
+    owner: 06/09/10/29/38; section 6
+    evidence: Summary/index/cache/replica/provider/learning propagation and races.
+  G41:
+    requirement: Current snapshot and interrupt semantics
+    owner: 25/27/28/30; 5.2/8.3
+    evidence: Exact current inputs, atomic claim, final sink check and truthful late cancel.
+  G42:
+    requirement: Stale/offline worker cannot commit
+    owner: 21/30/34/36; 3.3/5.4
+    evidence: Old owner fence denied; safe preparation/review allowed.
+  G43:
+    requirement: Correct time/wake/expiry semantics
+    owner: 17/36; 5.4/10.1
+    evidence: TZ/DST, recurrence, clock uncertainty, missed window and civil/monotonic cases.
+  G44:
+    requirement: Essential paths accessible beyond voice
+    owner: 02/04/05/28; 9.1/10.2
+    evidence: Text/caption/replay/pace/keyboard/assistive consent and recovery usability.
+  G45:
+    requirement: Sound eval promotion and monitoring
+    owner: 37/38/39; 11.3–11.4
+    evidence: Held-out, repeated/adversarial, calibrated independent graders, subgroup and drift evidence.

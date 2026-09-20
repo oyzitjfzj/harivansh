@@ -1,0 +1,18 @@
+{
+  "attempt_id": "attempt-1",
+  "effect_intent_id": "effect-1",
+  "decision_snapshot": {"ref": "snapshot-1", "digest": {"algorithm": "sha256", "value": "snapshot-digest"}},
+  "dispatch_claim_revision": 3,
+  "fencing_token": 9,
+  "adapter": {"ref": "adapter-1", "version": "7"},
+  "capability": {"ref": "capability-1", "version": "4"},
+  "environment": {"ref": "environment-1", "version": "2"},
+  "credential_handle_ref": "credential-handle-1",
+  "provider_idempotency_key": "idem-effect-1",
+  "request_digest": {"algorithm": "sha256", "value": "request-digest"},
+  "started_at": {"utc_timestamp": "2026-09-09T00:00:03Z", "uncertainty_before": "PT0S", "uncertainty_after": "PT0S", "clock_source": "clock-1", "synchronization_state": "synced"},
+  "monotonic_deadline": {"clock_ref": "mono-1", "tick": 5000},
+  "transport_result": "response-received",
+  "provider_status_receipt_refs": ["receipt-1"],
+  "next_action": "none"
+}

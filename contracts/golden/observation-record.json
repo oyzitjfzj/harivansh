@@ -1,0 +1,19 @@
+{
+  "observation_id": "observation-1",
+  "effect_intent_or_state_claim_ref": "effect-1",
+  "observer": {"workload_ref": "observer-1", "version": "1"},
+  "source_resource_account_refs": ["resource-1", "account-1"],
+  "observation_method": "target-state-readback",
+  "capability_version": {"ref": "capability-1", "version": "1"},
+  "observed_at": {"utc_timestamp": "2026-09-09T00:00:02Z", "uncertainty_before": "PT0S", "uncertainty_after": "PT0S", "clock_source": "clock-1", "synchronization_state": "synced"},
+  "source_event_time": "unknown",
+  "freshness_valid_until": "2026-09-09T00:05:02Z",
+  "result_schema": "urn:noerith:test-observation:1",
+  "canonical_digest": {"algorithm": "sha256", "value": "observation-digest"},
+  "result": "confirmed",
+  "confidence_calibration_profile_ref": "calibration-1",
+  "independence_relation_to_actor": {"relation": "different-endpoint"},
+  "evidence_refs": ["evidence-1"],
+  "lineage_privacy_retention_refs": ["lineage-1", "privacy-1"],
+  "integrity": {"digest": "integrity-1"}
+}
