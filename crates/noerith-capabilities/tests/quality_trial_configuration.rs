@@ -312,8 +312,7 @@ fn aliased_trial_population(
         trial.trial_ref = r(&format!("trial:q07:{alias}:{index}"));
         trial.grader_result_refs = refs(&[&format!("grade:q07:{alias}:{index}")]);
         trial.provenance_refs = refs(&[&format!("provenance:trial:{alias}:{index}")]);
-        trial.invalidation_dependency_refs =
-            refs(&[&format!("dependency:trial:{alias}:{index}")]);
+        trial.invalidation_dependency_refs = refs(&[&format!("dependency:trial:{alias}:{index}")]);
         if distinct_execution {
             trial.seed_ref = r(&format!("seed:{alias}:{index}"));
             trial.input_digest = digest(&format!("sha256:input:{alias}:{index}"));
