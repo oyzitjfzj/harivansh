@@ -1,0 +1,110 @@
+name: NOERITH CI
+
+on:
+  push:
+    branches:
+      - main
+      - "build/**"
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  contracts-kernel-storage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust
+        run: |
+          rustup toolchain install 1.98.1 --profile minimal --component rustfmt,clippy
+          rustup override set 1.98.1
+          rustc --version
+          cargo --version
+
+      - name: Cache Rust build inputs
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: noerith-${{ runner.os }}-rust-1.98.1-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            noerith-${{ runner.os }}-rust-1.98.1-
+
+      - name: Specification consistency
+        run: python3 tools/verify_spec.py
+
+      - name: Foundation control/evidence conformance
+        run: python3 tools/verify_control_evidence.py
+
+      - name: Canonical dependency boundaries
+        run: python3 tools/verify_dependency_boundaries.py
+
+      - name: Python contract reference
+        run: python3 tools/reference_contracts.py
+
+      - name: Bounded reference models
+        run: python3 models/bounded_reference.py
+
+      - name: Dependency lock is pinned
+        run: |
+          cargo metadata --locked --format-version 1 >/dev/null
+          git diff --exit-code -- Cargo.lock
+
+      - name: Rust formatting
+        run: cargo fmt --all --check
+
+      - name: Rust lint
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Rust tests
+        run: cargo test --workspace --locked
+
+      - name: Q04 policy semantics qualification
+        run: cargo test -p noerith-policy --test q04_policy --locked -- --nocapture
+
+      - name: S02 key-provider boundary qualification
+        run: cargo test -p noerith-storage --test key_provider --locked -- --nocapture
+
+      - name: Q03 bounded qualification evidence
+        run: cargo test -p noerith-storage --test q03_storage --locked -- --nocapture
+
+      - name: S03 canonical effect runtime qualification
+        run: cargo test -p noerith-effects --test s03_foundation --locked -- --nocapture
+
+      - name: S03 effect integrity qualification
+        run: cargo test -p noerith-effects --test s03_integrity --locked -- --nocapture
+
+      - name: S03 DispatchAttempt contract qualification
+        run: cargo test -p noerith-effects --test dispatch_attempt_contract --locked -- --nocapture
+
+      - name: S03 controlled release qualification
+        run: cargo test -p noerith-broker --test s03_controlled_release --locked -- --nocapture
+
+      - name: S03 final release freshness qualification
+        run: cargo test -p noerith-broker --test s03_release_freshness --locked -- --nocapture
+
+      - name: S03 transport capture qualification
+        run: cargo test -p noerith-broker --test s03_transport_capture --locked -- --nocapture
+
+      - name: S03 response-persist crash recovery qualification
+        run: cargo test -p noerith-broker --test s03_response_persist_crash --locked -- --nocapture
+
+      - name: S03 legacy effect contract regression
+        run: cargo test -p noerith-storage --test effect_contract --locked -- --nocapture
+
+      - name: S03 legacy cancellation regression
+        run: cargo test -p noerith-storage --test cancellation_contract --locked -- --nocapture
+
+      - name: S03 durable work/effects regression
+        run: cargo test -p noerith-storage --test s03_durable --locked -- --nocapture
+
+      - name: Working tree stays clean
+        run: git diff --exit-code

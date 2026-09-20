@@ -1,0 +1,94 @@
+version: 0.1.0
+project: NOERITH
+purpose: Track implementation-significant decisions without confusing selected direction, qualification evidence, and production proof.
+status_vocabulary:
+  selected_not_qualified: Direction selected for implementation; production qualification still required.
+  open_qualification: Concrete disposition exists, but required evidence or final production lock remains open.
+selected:
+  D-IMPL-001:
+    topic: shared_core_language
+    status: selected_not_qualified
+    decision: Rust edition 2024 for shared protected core/body, state transitions, permissions, scheduling and supervision.
+    qualification: Pin exact compiler/dependency versions against build targets; safe Rust first; unsafe/FFI isolated and reviewed.
+  D-IMPL-002:
+    topic: device_independent_logic
+    status: selected_not_qualified
+    decision: Small Rust crates; no_std-compatible only where it genuinely helps.
+    qualification: Keep OS, database, model runtime and networking outside pure logic crates.
+  D-IMPL-003:
+    topic: android_boundary
+    status: selected_not_qualified
+    decision: Thin Kotlin platform layer over the shared Rust core.
+    qualification: Use supported Android APIs/permissions; do not duplicate protected core logic in Kotlin.
+  D-IMPL-004:
+    topic: apple_boundary
+    status: selected_not_qualified
+    decision: Thin Swift platform layer over the shared Rust core.
+    qualification: Apple-specific integration only; protected core remains shared.
+  D-IMPL-005:
+    topic: browser_desktop_presentation
+    status: selected_not_qualified
+    decision: TypeScript may be used as an optional presentation layer.
+    qualification: Do not require Node/browser runtime on every device; host toolkit must pass footprint/accessibility/security tests.
+  D-IMPL-006:
+    topic: research_evaluation_runtime
+    status: selected_not_qualified
+    decision: Python for research/model experiments/evaluation off the critical control path.
+    qualification: Python is not a mandatory resident runtime on every user device.
+  D-IMPL-007:
+    topic: native_interop
+    status: selected_not_qualified
+    decision: Use a narrow C ABI and C/C++ only where a required native integration justifies it.
+    qualification: Explicit ownership, allocation, cancellation, failure and boundary checks; ABI is not a sandbox.
+  D-IMPL-008:
+    topic: cpu_hot_paths
+    status: selected_not_qualified
+    decision: Portable/compiler-optimized code first; intrinsics or Assembly only after profiling demonstrates a bottleneck.
+    qualification: Every optimized path requires a portable fallback and identical correctness tests.
+foundation_open_items:
+  O-FC-01:
+    topic: Wire/schema
+    status: open_qualification
+    disposition: Strict JSON + JCS reference candidate; typed schemas and differential round-trip before lock.
+  O-FC-02:
+    topic: Message signatures
+    status: open_qualification
+    disposition: Authenticated local IPC; signatures/integrity binding for persisted cross-boundary artifacts and delegated/remote messages as threat topology requires. Exact coverage and canonical bytes qualify; tracing never substitutes.
+  O-FC-03:
+    topic: Workload identity
+    status: open_qualification
+    disposition: OS-bound identities/capability handles locally; short-lived mutually authenticated workload identity in cloud, SPIFFE candidate. Attestation usefulness depends on target.
+  O-FC-04:
+    topic: HLC
+    status: open_qualification
+    disposition: Not global mandatory. Owner sequence + parents baseline; selective HLC only if query/replication requirements justify it.
+  O-FC-05:
+    topic: Version vectors
+    status: open_qualification
+    disposition: Not global mandatory. Use for proven offline multi-writer draft conflicts only; protected state remains owner/CAS.
+  O-FC-06:
+    topic: Stores
+    status: open_qualification
+    disposition: SQLCipher/SQLite local owner; encrypted blobs; PostgreSQL cloud owner candidate. Transaction/deletion/scale tests decide promotion.
+  O-FC-07:
+    topic: Workflow engine
+    status: open_qualification
+    disposition: Common NOERITH reducer/effect contract; compare local queue and Temporal cloud adapter using same fault traces before adopting engine.
+  O-FC-08:
+    topic: Policy engine
+    status: open_qualification
+    disposition: Cedar candidate within richer fail-closed NOERITH wrapper, with schema/diagnostics/obligations tests.
+  O-FC-09:
+    topic: Freshness SLO
+    status: open_qualification
+    disposition: Current atomic owner checks for protected release; topology-specific bounded remote/offline visibility must be measured and disclosed.
+  O-FC-10:
+    topic: Provider grades
+    status: open_qualification
+    disposition: E0–E5 derived from each adapter's actual conformance evidence; no provider is certified in this document.
+  O-FC-11:
+    topic: Formal tool mix
+    status: open_qualification
+    disposition: Bounded Python lifecycle model executed; TLA+/TLC reference candidate for grant/fence/effect races, property/fault tests for implementation.
+reopen_rule: Reopen a decision only for failing tests, demonstrated conflict, changed requirement, material new evidence, or the frozen architecture's fundamental-contradiction rule.
+recording_rule: A written choice is not implementation proof; each promoted decision needs the evidence named by its qualification or source contract.

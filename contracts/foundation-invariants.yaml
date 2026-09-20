@@ -1,0 +1,187 @@
+version: 0.1.0
+project: NOERITH
+catalog: foundation_invariants
+source: master_implementation_blueprint_appendix_c
+implementation_evidence_default: not_run
+name_normalization: Historical working-name wording is normalized to NOERITH.
+invariants:
+  FC-001:
+    invariant: Every protected decision names tenant namespace, controlling principal, acting workload and applicable target/account set.
+    proof: schema + generated-case property test
+  FC-002:
+    invariant: Unresolved/mismatched principal cannot receive private context or commit consequential effect.
+    proof: adversarial shared-device/cross-tenant corpus
+  FC-003:
+    invariant: Credential value is never the principal identity and raw long-lived credentials never enter model/prompt/ordinary log/artifact context.
+    proof: taint/secret scanning + broker boundary test
+  FC-004:
+    invariant: Every delegation edge is non-amplifying across operation, resource, target, audience, purpose, data, autonomy, expiry and use limit.
+    proof: property/model test
+  FC-005:
+    invariant: Delegation chain is acyclic, bounded and traceable to an authorized root.
+    proof: graph validation/model test
+  FC-006:
+    invariant: Expired/revoked grant or workload identity cannot create a new protected commit.
+    proof: time/revocation race model
+  FC-007:
+    invariant: Assurance dimensions are thresholded independently; no average can hide a required weak dimension.
+    proof: policy test corpus
+  FC-008:
+    invariant: Target account identity is stable provider/tenant/account binding, not display label or recent default.
+    proof: wrong-account adversarial tests
+  FC-009:
+    invariant: Credential handle is audience/purpose/scope/time bound and unusable outside the approved execution boundary.
+    proof: capability/negative authorization tests
+  FC-010:
+    invariant: Every material message has stable ID, type, schema version, authenticated producer, causal metadata and payload digest.
+    proof: schema conformance
+  FC-011:
+    invariant: Same dedup key with different digest is an integrity conflict, never overwrite.
+    proof: replay/tamper test
+  FC-012:
+    invariant: Duplicate delivery of same message cannot duplicate accepted state/effect transition.
+    proof: idempotent handler property test
+  FC-013:
+    invariant: Protected fields survive serialization, persistence, compaction, replay and handoff without semantic loss.
+    proof: round-trip/golden corpus
+  FC-014:
+    invariant: Unknown protected field/major schema cannot be silently ignored at protected commit.
+    proof: compatibility downgrade tests
+  FC-015:
+    invariant: Trace/correlation/causation identifiers never grant authority or raise trust。
+    proof: spoofed trace negative tests
+  FC-016:
+    invariant: Payload digest is over canonical schema/version representation; ambiguous encodings cannot validate as same signed object.
+    proof: canonicalization differential tests
+  FC-017:
+    invariant: Producer authentication, message integrity and semantic authorization are separately evaluated.
+    proof: composed security tests
+  FC-018:
+    invariant: Sensitive payload handling carries purpose, audience/provider scope, trust/taint and retention classification.
+    proof: privacy/lineage schema tests
+  FC-019:
+    invariant: Events are append facts; correction/supersession does not erase original causal history.
+    proof: replay test
+  FC-020:
+    invariant: Arrival order or wall-clock timestamp alone never resolves causal/protected conflict.
+    proof: reordered delivery/clock skew test
+  FC-021:
+    invariant: Timeouts, heartbeat intervals and lease durations use monotonic duration measurement within a runtime.
+    proof: clock-jump tests
+  FC-022:
+    invariant: Civil recurrence preserves TZID, TZDB version and explicit DST ambiguity/nonexistent-time behavior.
+    proof: RFC5545/TZDB edge corpus
+  FC-023:
+    invariant: Every durable aggregate has registered state class S0–S7 and only class-approved merge/transition semantics.
+    proof: registry/schema gate
+  FC-024:
+    invariant: S5/S6/S7 protected state never uses silent last-write-wins or model-only semantic merge.
+    proof: concurrency property/model tests
+  FC-025:
+    invariant: S2/S3 merge is enabled only after algebraic convergence and lifecycle properties are proven.
+    proof: commutative/associative/idempotent tests
+  FC-026:
+    invariant: Protected write/dispatch from leased worker requires current monotonically valid fencing token at sink.
+    proof: lease-expiry/partition chaos
+  FC-027:
+    invariant: Tombstone/revocation/correction frontier prevents offline replica resurrection.
+    proof: partition/rejoin model
+  FC-028:
+    invariant: Replay produces same accepted revision sequence and explicit conflict objects from same event history.
+    proof: deterministic replay test
+  FC-029:
+    invariant: Monotonic clocks from different processes/devices are never directly compared as global instants.
+    proof: static/schema + multi-node tests
+  FC-030:
+    invariant: User intent governs only within verified principal authority, applicable policy and protected boundaries.
+    proof: decision corpus
+  FC-031:
+    invariant: User consent cannot bypass product/privacy/organization/region obligations; policy permit cannot invent user authority.
+    proof: cross-product matrix
+  FC-032:
+    invariant: Policy decisions pin applicable policy IDs, versions, effective interval, result, obligations and recheck triggers.
+    proof: schema/conformance
+  FC-033:
+    invariant: Unresolved material policy conflict/indeterminate state cannot silently permit high-impact commit.
+    proof: conflict corpus
+  FC-034:
+    invariant: Consent/authority binds exact operation, target/account/audience, payload or bounded class, purpose, autonomy, time and recurrence.
+    proof: grant matching properties
+  FC-035:
+    invariant: One-time/limited grant cannot be replayed after consumption or expiry.
+    proof: concurrency/use-count model
+  FC-036:
+    invariant: Every consequential effect has immutable Decision Snapshot with all material decision inputs and canonical digests.
+    proof: schema/golden cases
+  FC-037:
+    invariant: Any material input change invalidates old snapshot before effect commit.
+    proof: mutation testing
+  FC-038:
+    invariant: Commit boundary revalidates revocation, policy, authority, state revision, capability, interrupt frontier and fence.
+    proof: model/chaos tests
+  FC-039:
+    invariant: Valid cancel/revoke/correction before commit claim blocks dispatch; after external acceptance truth/compensation semantics apply.
+    proof: race model
+  FC-040:
+    invariant: Typed obligations must have satisfaction evidence before permit can commit.
+    proof: obligation test corpus
+  FC-041:
+    invariant: High-risk independent check, when required by risk/policy, has recorded separation and cannot be replaced by actor self-assertion.
+    proof: evaluator independence tests
+  FC-042:
+    invariant: Every external mutation has stable EffectIntent distinct from message/attempt IDs.
+    proof: schema + retry tests
+  FC-043:
+    invariant: Same intent retains idempotency identity across safe retries; distinct user intent gets distinct identity even with same payload.
+    proof: generated sequence tests
+  FC-044:
+    invariant: A dispatcher must hold current dispatch claim and fence; stale/parallel worker cannot send same claimed intent.
+    proof: partition/lease chaos
+  FC-045:
+    invariant: Non-idempotent/opaque effect is never blindly retried after ambiguous send.
+    proof: fault injection
+  FC-046:
+    invariant: Timeout/connection loss after possible send yields acceptance unknown until evidence resolves it.
+    proof: crash/network injection
+  FC-047:
+    invariant: Authorized, dispatched, accepted, observed and verified are distinct states and never collapsed.
+    proof: state-machine model
+  FC-048:
+    invariant: Tool/provider success alone cannot satisfy domain completion without required observation/evidence.
+    proof: false-success corpus
+  FC-049:
+    invariant: Cancel requested is not cancel confirmed; post-acceptance result may be too-late or unknown.
+    proof: provider race simulation
+  FC-050:
+    invariant: Compensation is a new effect with its own policy, authority, snapshot, identity, failure and evidence.
+    proof: saga/fault tests
+  FC-051:
+    invariant: Adapter assurance claims come from conformance evidence and may only reduce—not expand—policy/user limits.
+    proof: adapter certification tests
+  FC-052:
+    invariant: Retry budget, backoff and jitter are bounded; dependency failure cannot trigger unbounded retry storm.
+    proof: load/chaos test
+  FC-053:
+    invariant: Unresolved external outcome remains durable, user-visible and reconciliable; it is never garbage-collected as fake terminal success/failure.
+    proof: recovery/retention test
+  FC-054:
+    invariant: Principal, goal, correction, state, lineage, policy, authority and capability versions used for a commit are reconstructable from audit records.
+    proof: audit reconstruction
+  FC-055:
+    invariant: Context compaction, agent handoff and device/cloud handoff cannot remove a protected field needed by future commit/recovery.
+    proof: long-context/handoff tests
+  FC-056:
+    invariant: Untrusted data cannot become instruction/authority because it passed through summary, memory, envelope or worker.
+    proof: taint propagation red-team
+  FC-057:
+    invariant: Long-running work rechecks cumulative trajectory at risk/milestone/event triggers before next consequential effect.
+    proof: drift/interrupt benchmark
+  FC-058:
+    invariant: Unhealthy/quarantined worker cannot bypass Effect Ledger or commit with retained credential/fence.
+    proof: supervision/credential chaos
+  FC-059:
+    invariant: User-visible status distinguishes planned, running, waiting, committed, accepted, verified, failed, cancelled and unknown without fake progress.
+    proof: state-to-UX conformance
+  FC-060:
+    invariant: No semantic rule in this pack depends on exact user wording; examples become generalized tests, not phrase triggers.
+    proof: paraphrase/behavior eval
