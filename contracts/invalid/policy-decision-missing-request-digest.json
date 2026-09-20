@@ -1,0 +1,18 @@
+{
+  "decision_id": "policy-decision-invalid",
+  "principal_context_digest": {"algorithm": "sha256", "value": "principal"},
+  "applicable_policy_set": [],
+  "result": "PERMIT",
+  "obligations": [],
+  "narrowed_scope": null,
+  "reason_codes": [],
+  "public_explanation_ref": "explanation",
+  "protected_explanation_evidence_refs": [],
+  "decided_at": "2026-09-08T00:00:00Z",
+  "logical_stamp": {"stream_ref": "policy-stream", "stream_sequence": 1, "aggregate_revision": 1, "hlc": null, "vector_frontier_ref": null},
+  "valid_until": "2026-09-08T00:10:00Z",
+  "recheck_triggers": [],
+  "reviewer_ref": null,
+  "decision_engine": {},
+  "integrity": {}
+}

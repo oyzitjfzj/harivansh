@@ -1,0 +1,18 @@
+{
+  "verdict_id": "mirror-1",
+  "scope": "trajectory",
+  "candidate_digest": {"algorithm": "sha256", "value": "candidate-digest"},
+  "checked_goal_version": {"ref": "goal-1", "version": 4},
+  "correction_frontier": {},
+  "checked_principal_context_digest": {"algorithm": "sha256", "value": "principal-digest"},
+  "checked_state_preconditions": [],
+  "checked_policy_authority_refs": ["policy-1"],
+  "checked_target_payload_capability_refs": ["target-1"],
+  "risk_profile": {},
+  "checker_profile": {},
+  "result": "permit",
+  "mismatch_codes": [],
+  "evidence_refs": ["mirror-evidence-1"],
+  "valid_until": "2026-09-09T00:05:00Z",
+  "invalidation_triggers": []
+}
