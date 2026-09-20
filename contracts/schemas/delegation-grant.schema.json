@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:noerith:schema:delegation-grant:0.1.0",
+  "title": "NOERITH DelegationGrant v0.1",
+  "type": "object",
+  "required": [
+    "grant_id",
+    "issuer",
+    "subject",
+    "delegate",
+    "parent_grant_ref",
+    "chain_depth",
+    "allowed_operations",
+    "allowed_resources",
+    "allowed_targets",
+    "allowed_audiences",
+    "purpose",
+    "autonomy_ceiling",
+    "data_classes",
+    "obligations",
+    "not_before",
+    "expires_at",
+    "use_limit",
+    "consumed_count",
+    "revocation_epoch",
+    "issued_under_policy",
+    "proof"
+  ],
+  "properties": {
+    "grant_id": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Id"},
+    "issuer": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Ref"},
+    "subject": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Ref"},
+    "delegate": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Ref"},
+    "parent_grant_ref": {
+      "$ref": "urn:noerith:schema:common:0.1.0#/$defs/Id",
+      "$comment": "Source contract permits an ID or the self-origin marker."
+    },
+    "chain_depth": {"type": "integer", "minimum": 0},
+    "allowed_operations": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/StringSet"},
+    "allowed_resources": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/StringSet"},
+    "allowed_targets": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/RefSet"},
+    "allowed_audiences": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/RefSet"},
+    "purpose": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/RefSet"},
+    "autonomy_ceiling": {"enum": ["observe", "suggest", "prepare", "once", "bounded-auto"]},
+    "data_classes": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/StringSet"},
+    "obligations": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "not_before": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Instant"},
+    "expires_at": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Instant"},
+    "use_limit": {
+      "oneOf": [
+        {"type": "integer", "minimum": 0},
+        {"const": "bounded-recurring"}
+      ]
+    },
+    "consumed_count": {"type": "integer", "minimum": 0},
+    "revocation_epoch": {"type": "integer"},
+    "issued_under_policy": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/VersionedRef"},
+    "proof": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/DigestRef"}
+  },
+  "additionalProperties": false,
+  "$comment": "Non-amplification, acyclicity, expiry/revocation and use-count semantics are S01 semantic invariants, not expressible safely as structure-only JSON Schema rules."
+}

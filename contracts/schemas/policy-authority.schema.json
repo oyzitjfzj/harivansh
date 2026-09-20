@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:noerith:schema:policy-authority:0.1.0",
+  "title": "NOERITH Policy, Authority and Consent Foundation Contracts v0.1",
+  "description": "Source-faithful S00 machine representation. Opaque required values preserve required presence where the source does not yet lock a nested wire representation.",
+  "$defs": {
+    "OpaqueRequiredValue": {"$comment": "Presence is required by the source contract; exact nested wire shape remains a qualification item."},
+    "PolicyBinding": {
+      "type": "object",
+      "required": ["policy_id", "version", "issuer", "effective_interval", "digest"],
+      "properties": {
+        "policy_id": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Id"},
+        "version": {"type": ["string", "integer"]},
+        "issuer": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Ref"},
+        "effective_interval": {"$ref": "#/$defs/OpaqueRequiredValue"},
+        "digest": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Digest"}
+      },
+      "additionalProperties": false
+    },
+    "PolicyRequest": {
+      "type": "object",
+      "required": ["request_id", "subject", "object", "action", "purpose", "environment", "relationship", "goal", "work", "capability", "lineage_trust_privacy", "proposed_payload_digest", "consequence_risk_summary_ref"],
+      "properties": {
+        "request_id": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Id"},
+        "subject": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Ref"},
+        "object": {"$ref": "#/$defs/OpaqueRequiredValue"},
+        "action": {"$ref": "#/$defs/OpaqueRequiredValue"},
+        "purpose": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Ref"},
+        "environment": {"$ref": "#/$defs/OpaqueRequiredValue"},
+        "relationship": {"$ref": "#/$defs/OpaqueRequiredValue"},
+        "goal": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/VersionedRef"},
+        "work": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/VersionedRef"},
+        "capability": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/VersionedRef"},
+        "lineage_trust_privacy": {"$ref": "#/$defs/OpaqueRequiredValue"},
+        "proposed_payload_digest": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Digest"},
+        "consequence_risk_summary_ref": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Ref"}
+      },
+      "additionalProperties": false
+    },
+    "PolicyDecision": {
+      "type": "object",
+      "required": ["decision_id", "request_digest", "principal_context_digest", "applicable_policy_set", "result", "obligations", "narrowed_scope", "reason_codes", "public_explanation_ref", "protected_explanation_evidence_refs", "decided_at", "logical_stamp", "valid_until", "recheck_triggers", "reviewer_ref", "decision_engine", "integrity"],
+      "properties": {
+        "decision_id": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Id"},
+        "request_digest": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Digest"},
+        "principal_context_digest": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Digest"},
+        "applicable_policy_set": {"type": "array", "items": {"$ref": "#/$defs/PolicyBinding"}},
+        "result": {"enum": ["PERMIT", "PERMIT_WITH_OBLIGATIONS", "NARROW", "REQUIRE_USER_ACTION", "REQUIRE_REVIEW", "DENY", "DEFER", "INDETERMINATE", "CONFLICT"]},
+        "obligations": {"type": "array", "items": {"$ref": "#/$defs/OpaqueRequiredValue"}},
+        "narrowed_scope": {"anyOf": [{"$ref": "#/$defs/OpaqueRequiredValue"}, {"type": "null"}]},
+        "reason_codes": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/StringSet"},
+        "public_explanation_ref": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Ref"},
+        "protected_explanation_evidence_refs": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/RefSet"},
+        "decided_at": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Instant"},
+        "logical_stamp": {"$ref": "urn:noerith:schema:foundation-types:0.1.0#/$defs/LogicalStamp"},
+        "valid_until": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Instant"},
+        "recheck_triggers": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/StringSet"},
+        "reviewer_ref": {"anyOf": [{"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Ref"}, {"type": "null"}]},
+        "decision_engine": {"$ref": "#/$defs/OpaqueRequiredValue"},
+        "integrity": {"$ref": "#/$defs/OpaqueRequiredValue"}
+      },
+      "additionalProperties": false
+    },
+    "AuthorityGrant": {
+      "type": "object",
+      "required": ["grant_id", "granting_principal", "beneficiary_subjects", "acting_principal_or_workload_class", "operations", "targets", "purpose", "data_classes", "autonomy", "recurrence_trigger_bounds", "bounded_impacts", "obligations", "always_ask_boundaries", "issued_at", "effective_at", "expires_at", "use_limit", "consumption_state", "revocation_epoch", "parent_delegation_ref", "policy_context_ref", "consent_receipt_ref", "integrity"],
+      "properties": {
+        "grant_id": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Id"},
+        "granting_principal": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Ref"},
+        "beneficiary_subjects": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/RefSet"},
+        "acting_principal_or_workload_class": {"$ref": "#/$defs/OpaqueRequiredValue"},
+        "operations": {"$ref": "#/$defs/OpaqueRequiredValue"},
+        "targets": {"$ref": "#/$defs/OpaqueRequiredValue"},
+        "purpose": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Ref"},
+        "data_classes": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/StringSet"},
+        "autonomy": {"enum": ["observe", "suggest", "prepare", "execute-once", "bounded-auto", "never"]},
+        "recurrence_trigger_bounds": {"$ref": "#/$defs/OpaqueRequiredValue"},
+        "bounded_impacts": {"$ref": "#/$defs/OpaqueRequiredValue"},
+        "obligations": {"type": "array", "items": {"$ref": "#/$defs/OpaqueRequiredValue"}},
+        "always_ask_boundaries": {"$ref": "#/$defs/OpaqueRequiredValue"},
+        "issued_at": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Instant"},
+        "effective_at": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Instant"},
+        "expires_at": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Instant"},
+        "use_limit": {"$ref": "#/$defs/OpaqueRequiredValue"},
+        "consumption_state": {"$ref": "#/$defs/OpaqueRequiredValue"},
+        "revocation_epoch": {"type": "integer", "minimum": 0},
+        "parent_delegation_ref": {"anyOf": [{"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Ref"}, {"type": "null"}]},
+        "policy_context_ref": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Ref"},
+        "consent_receipt_ref": {"anyOf": [{"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Ref"}, {"type": "null"}]},
+        "integrity": {"$ref": "#/$defs/OpaqueRequiredValue"}
+      },
+      "additionalProperties": false
+    },
+    "ConsentReceipt": {
+      "type": "object",
+      "required": ["receipt_id", "principal_context", "action_summary_digest", "targets", "payload", "purpose", "data_disclosure", "reversibility_cancel_limits", "autonomy_recurrence", "user_response_event_ref", "accessibility_channel_evidence", "issued_at", "expires_at"],
+      "properties": {
+        "receipt_id": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Id"},
+        "principal_context": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/DigestRef"},
+        "action_summary_digest": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Digest"},
+        "targets": {"$ref": "#/$defs/OpaqueRequiredValue"},
+        "payload": {"$ref": "#/$defs/OpaqueRequiredValue"},
+        "purpose": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Ref"},
+        "data_disclosure": {"$ref": "#/$defs/OpaqueRequiredValue"},
+        "reversibility_cancel_limits": {"$ref": "#/$defs/OpaqueRequiredValue"},
+        "autonomy_recurrence": {"$ref": "#/$defs/OpaqueRequiredValue"},
+        "user_response_event_ref": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Ref"},
+        "accessibility_channel_evidence": {"$ref": "#/$defs/OpaqueRequiredValue"},
+        "issued_at": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Instant"},
+        "expires_at": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Instant"}
+      },
+      "additionalProperties": false
+    }
+  }
+}

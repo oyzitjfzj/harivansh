@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:noerith:schema:foundation-types:0.1.0",
+  "title": "NOERITH Foundation Time and State Types",
+  "$defs": {
+    "Duration": {
+      "type": "string",
+      "minLength": 1,
+      "$comment": "Reference encoding only. Final duration wire representation remains an O-FC-01 qualification item."
+    },
+    "UncertainInstant": {
+      "type": "object",
+      "required": ["utc_timestamp", "uncertainty_before", "uncertainty_after", "clock_source", "synchronization_state"],
+      "properties": {
+        "utc_timestamp": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Instant"},
+        "uncertainty_before": {"$ref": "#/$defs/Duration"},
+        "uncertainty_after": {"$ref": "#/$defs/Duration"},
+        "clock_source": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Id"},
+        "synchronization_state": {"enum": ["synced", "degraded", "unknown"]}
+      },
+      "additionalProperties": false
+    },
+    "LogicalStamp": {
+      "type": "object",
+      "required": ["stream_ref", "stream_sequence", "aggregate_revision", "vector_frontier_ref"],
+      "properties": {
+        "stream_ref": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Id"},
+        "stream_sequence": {"type": ["integer", "null"]},
+        "aggregate_revision": {"type": ["integer", "null"]},
+        "hlc": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": ["physical_component", "logical_counter", "node_id"],
+              "properties": {
+                "physical_component": {},
+                "logical_counter": {"type": "integer"},
+                "node_id": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Id"}
+              },
+              "additionalProperties": false
+            },
+            {"type": "null"}
+          ],
+          "$comment": "HLC remains a selective candidate under O-FC-04; physical component encoding is intentionally not locked here."
+        },
+        "vector_frontier_ref": {
+          "anyOf": [
+            {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Ref"},
+            {"type": "null"}
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "StatePrecondition": {
+      "type": "object",
+      "required": [
+        "aggregate_ref", "aggregate_type", "state_class", "expected_revision", "expected_digest",
+        "expected_lifecycle_state", "minimum_revocation_epoch", "fencing_token", "causal_frontier_ref", "failure_action"
+      ],
+      "properties": {
+        "aggregate_ref": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Ref"},
+        "aggregate_type": {"type": "string", "minLength": 1},
+        "state_class": {"enum": ["S0", "S1", "S2", "S3", "S4", "S5", "S6", "S7"]},
+        "expected_revision": {"type": ["string", "integer", "null"]},
+        "expected_digest": {
+          "anyOf": [
+            {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Digest"},
+            {"type": "null"}
+          ]
+        },
+        "expected_lifecycle_state": {"type": ["string", "null"]},
+        "minimum_revocation_epoch": {"type": ["integer", "null"]},
+        "fencing_token": {"type": ["string", "integer", "null"]},
+        "causal_frontier_ref": {"$ref": "urn:noerith:schema:common:0.1.0#/$defs/Ref"},
+        "failure_action": {"enum": ["reject", "conflict", "refresh", "review", "reconcile"]}
+      },
+      "additionalProperties": false
+    }
+  }
+}
