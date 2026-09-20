@@ -539,39 +539,34 @@ pub fn verify_quality_evidence_with_trials(
     let mut population_execution_identities = BTreeSet::<ExecutionIdentity>::new();
     let mut population_grade_refs = BTreeSet::<Reference>::new();
     let mut population_grade_identities = BTreeSet::<ExactGradeEvidenceIdentity>::new();
-    let mut population_corpora =
-        BTreeMap::<_, ExactCorpusEvidenceIdentity>::new();
-    let mut population_environments =
-        BTreeMap::<_, ExactEnvironmentEvidenceIdentity>::new();
+    let mut population_corpora = BTreeMap::<_, ExactCorpusEvidenceIdentity>::new();
+    let mut population_environments = BTreeMap::<_, ExactEnvironmentEvidenceIdentity>::new();
 
     for trial_set in trial_sets {
         for trial_ref in trial_set.trial_refs() {
             if !population_trial_refs.insert(trial_ref.clone()) {
-                return Err(QualityTrialEvidenceBindingError::DuplicatePopulationTrialRef(
-                    trial_ref.to_string(),
-                ));
+                return Err(
+                    QualityTrialEvidenceBindingError::DuplicatePopulationTrialRef(
+                        trial_ref.to_string(),
+                    ),
+                );
             }
         }
         for execution_identity in trial_set.execution_identities() {
             if !population_execution_identities.insert(execution_identity.clone()) {
-                return Err(
-                    QualityTrialEvidenceBindingError::DuplicatePopulationExecutionIdentity,
-                );
+                return Err(QualityTrialEvidenceBindingError::DuplicatePopulationExecutionIdentity);
             }
         }
         for grade_ref in trial_set.grade_refs() {
             if !population_grade_refs.insert(grade_ref.clone()) {
-                return Err(QualityTrialEvidenceBindingError::PopulationGradeEvidenceReused(
-                    grade_ref.to_string(),
-                ));
+                return Err(
+                    QualityTrialEvidenceBindingError::PopulationGradeEvidenceReused(
+                        grade_ref.to_string(),
+                    ),
+                );
             }
         }
-        population_grade_identities.extend(
-            trial_set
-                .exact_grade_identities()
-                .iter()
-                .cloned(),
-        );
+        population_grade_identities.extend(trial_set.exact_grade_identities().iter().cloned());
 
         for identity in trial_set.exact_corpus_identities() {
             let key = identity.logical_key();
