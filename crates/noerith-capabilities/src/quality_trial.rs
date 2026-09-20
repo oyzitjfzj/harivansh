@@ -124,7 +124,6 @@ impl ExactGradeEvidenceIdentity {
             verification_value_ref: grade.verification_digest().value.clone(),
         }
     }
-
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -179,7 +178,10 @@ impl ExecutionIdentity {
             input_digest_value_ref: trial.input_digest.value.clone(),
             candidate_configuration_ref: trial.candidate_configuration_ref.clone(),
             candidate_configuration_version: trial.candidate_configuration_version.clone(),
-            candidate_digest_algorithm_ref: trial.candidate_configuration_digest.algorithm_ref.clone(),
+            candidate_digest_algorithm_ref: trial
+                .candidate_configuration_digest
+                .algorithm_ref
+                .clone(),
             candidate_digest_value_ref: trial.candidate_configuration_digest.value.clone(),
         }
     }
