@@ -1,0 +1,249 @@
+version: 0.1.0
+project:
+  name: NOERITH
+  stage: S00
+  frozen:
+    systems: 7
+    organs: 39
+    contracts: 3
+    regimes: 6
+    rules: 19
+    gates: 45
+    foundation_invariants: 60
+  name_normalization: Historical working-name wording is normalized to NOERITH in new implementation artifacts; original sources remain hash-addressed.
+authority:
+  precedence:
+  - latest_user_direction
+  - vision_anchor
+  - logical_blueprint
+  - phase2_foundation
+  - work_order
+  - master_blueprint
+  - noerith_build_decisions
+  rule: Lower-precedence sources may refine implementation details but must not silently override higher-precedence requirements.
+sources:
+  vision_anchor: 8e254fa891b595bfb401aecec1a36d7328234338067c9ae496a9a45055f82d20
+  logical_blueprint: c4925ca8704c70fbfc6bf977d52bbcb9fb1edb096782566b7c7a3c5f31c00135
+  phase2_matrix: 46fca63adbcba006a45ea16ad56938c4a5efe1b49d81ade97b134db370a8d26f
+  foundation_pack: 6b8cefc2c441ba0f1df5d7534074977db1949882b7d5f9061353df46321d173d
+  work_order: 54980c705508d83e5df2f82ee86a1a89a5979891ed3e3b0f150fb90e3664a15f
+  master_blueprint: e631049e0954fb44bc244dbafed611064f88bde2735835e98fca98cb1a914fe8
+  noerith_build_decisions: 0f03a89b452d36b262cbbff3e26eaaf6a0c0aae52f12c3326d8c25f16e51e721
+format:
+  registry: YAML 1.2.2 simple subset
+  wire_reference: strict JSON
+  canonical_digest: RFC 8785 JCS where required
+  reject:
+  - duplicate_mapping_keys
+  - custom_yaml_tags
+  - yaml_anchors_aliases
+  wire_independence:
+  - pointer_width
+  - native_struct_layout
+  - endianness
+contracts:
+- Trajectory Integrity
+- Information Lineage, Trust & Lifecycle
+- Decision Snapshot, Commit Freshness & Interrupt
+field_families:
+  principal:
+  - speaker
+  - controlling_user
+  - acting_worker
+  - target_account
+  - delegation
+  goal:
+  - goal_constitution_version
+  - correction_boundary
+  - task_or_work_id
+  state:
+  - belief_or_work_revision
+  - preconditions
+  - merge_class
+  lineage:
+  - source_ids
+  - derivation_parents
+  - trust_or_taint
+  - confidence
+  privacy:
+  - owner
+  - purpose
+  - audience
+  - sensitivity
+  - retention
+  - deletion_state
+  policy_authority:
+  - policy_decision_version
+  - grant_id
+  - scope
+  - expiry
+  - revocation_epoch
+  capability:
+  - tool_model_skill_identity
+  - version
+  - provenance
+  - declared_effects
+  effect:
+  - intent_key
+  - operation
+  - target
+  - payload_digest
+  - reversibility
+  - fence
+  time:
+  - wall_time
+  - monotonic_sequence
+  - timezone_calendar
+  - deadline_window
+  resources:
+  - quality_floor
+  - latency_deadline
+  - cost_energy_budget
+  evidence:
+  - trace_id
+  - expected_observation
+  - result_evidence
+  - verifier
+catalogs:
+  rules:
+    path: contracts/rules.yaml
+    ids:
+    - R01
+    - R02
+    - R03
+    - R04
+    - R05
+    - R06
+    - R07
+    - R08
+    - R09
+    - R10
+    - R11
+    - R12
+    - R13
+    - R14
+    - R15
+    - R16
+    - R17
+    - R18
+    - R19
+  gates:
+    path: contracts/gates.yaml
+    ids:
+    - G01
+    - G02
+    - G03
+    - G04
+    - G05
+    - G06
+    - G07
+    - G08
+    - G09
+    - G10
+    - G11
+    - G12
+    - G13
+    - G14
+    - G15
+    - G16
+    - G17
+    - G18
+    - G19
+    - G20
+    - G21
+    - G22
+    - G23
+    - G24
+    - G25
+    - G26
+    - G27
+    - G28
+    - G29
+    - G30
+    - G31
+    - G32
+    - G33
+    - G34
+    - G35
+    - G36
+    - G37
+    - G38
+    - G39
+    - G40
+    - G41
+    - G42
+    - G43
+    - G44
+    - G45
+    implementation_evidence_default: not_run
+  foundation_invariants:
+    path: contracts/foundation-invariants.yaml
+    ids:
+    - FC-001
+    - FC-002
+    - FC-003
+    - FC-004
+    - FC-005
+    - FC-006
+    - FC-007
+    - FC-008
+    - FC-009
+    - FC-010
+    - FC-011
+    - FC-012
+    - FC-013
+    - FC-014
+    - FC-015
+    - FC-016
+    - FC-017
+    - FC-018
+    - FC-019
+    - FC-020
+    - FC-021
+    - FC-022
+    - FC-023
+    - FC-024
+    - FC-025
+    - FC-026
+    - FC-027
+    - FC-028
+    - FC-029
+    - FC-030
+    - FC-031
+    - FC-032
+    - FC-033
+    - FC-034
+    - FC-035
+    - FC-036
+    - FC-037
+    - FC-038
+    - FC-039
+    - FC-040
+    - FC-041
+    - FC-042
+    - FC-043
+    - FC-044
+    - FC-045
+    - FC-046
+    - FC-047
+    - FC-048
+    - FC-049
+    - FC-050
+    - FC-051
+    - FC-052
+    - FC-053
+    - FC-054
+    - FC-055
+    - FC-056
+    - FC-057
+    - FC-058
+    - FC-059
+    - FC-060
+    implementation_evidence_default: not_run
+checks:
+  counts:
+    field_families: 11
+    rules: 19
+    gates: 45
+    foundation_invariants: 60
+  reject_unknown_catalog_ids: true
