@@ -34,14 +34,13 @@ pub use context::{
 };
 pub use contracts::{
     AdaptivePolicyRef, ContextBoundaryLabels, ContextCandidateDescriptor, ContextItemIdentity,
-    ContextItemKind, ContextSelectionBinding, ContextSelectionDisposition,
-    ContextSelectionReceipt, ContextValidityFrontier, DerivedContextProjection,
-    ExactSourceProjection, GoalPatch, GoalPatchRelation, ModelQualificationProfile, ModelRejection,
-    ModelRequest, ModelRoutingReceipt, PlanProposal, ProgressEvidence, ProgressKind,
-    ProtectedEvidenceLocator, ProtectedEvidenceRef, ReceiverContextProfileRef, ResourceEnvelope,
-    SchedulerCandidate, SchedulerDecision, StructuredFactProjection, TaskEdge, TaskEdgeKind,
-    TaskGraph, TaskNode, TimeSemantics, TimingConstraint, TrajectoryCheckpoint,
-    TrajectoryVerdict, VersionedRef,
+    ContextItemKind, ContextSelectionBinding, ContextSelectionDisposition, ContextSelectionReceipt,
+    ContextValidityFrontier, DerivedContextProjection, ExactSourceProjection, GoalPatch,
+    GoalPatchRelation, ModelQualificationProfile, ModelRejection, ModelRequest,
+    ModelRoutingReceipt, PlanProposal, ProgressEvidence, ProgressKind, ProtectedEvidenceLocator,
+    ProtectedEvidenceRef, ReceiverContextProfileRef, ResourceEnvelope, SchedulerCandidate,
+    SchedulerDecision, StructuredFactProjection, TaskEdge, TaskEdgeKind, TaskGraph, TaskNode,
+    TimeSemantics, TimingConstraint, TrajectoryCheckpoint, TrajectoryVerdict, VersionedRef,
 };
 pub use delivery::{
     ContextDeliveryBoundary, ContextDeliveryError, ContextDeliveryLabelSnapshot,
@@ -80,10 +79,10 @@ pub use interfaces::{
     BoundContextSelectionReceipt, BoundGoalPatchProposalDisposition, BoundTrajectoryCheckpoint,
     ContextRerankBinding, ContextRerankProposal, ContextRerankRequest, ContextReranker,
     ContextSelectionRequest, ContextSelector, GoalPatchEvaluationBinding,
-    GoalPatchEvaluationRequest, GoalPatchEvaluator, GoalPatchProposalDisposition,
-    ModelRouter, ModelRoutingRequest, PlanningPolicy, PlanningRequest, ProgressEvaluation,
-    ProgressEvaluationRequest, ProgressEvaluator, QualifiedModelRoutingCandidate,
-    SchedulerPolicy, SchedulerRequest, TrajectoryEvaluationBinding, TrajectoryEvaluationRequest,
+    GoalPatchEvaluationRequest, GoalPatchEvaluator, GoalPatchProposalDisposition, ModelRouter,
+    ModelRoutingRequest, PlanningPolicy, PlanningRequest, ProgressEvaluation,
+    ProgressEvaluationRequest, ProgressEvaluator, QualifiedModelRoutingCandidate, SchedulerPolicy,
+    SchedulerRequest, TrajectoryEvaluationBinding, TrajectoryEvaluationRequest,
     TrajectoryEvaluator,
 };
 pub use validators::{
