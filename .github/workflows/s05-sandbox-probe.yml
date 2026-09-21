@@ -76,7 +76,7 @@ jobs:
 
               printf "fn main() { println!(\"sandbox-ok\"); }\n" > /work/main.rs
               rustc /work/main.rs -o /work/hello
-              echo "WORK_MOUNT=$(grep ' /work ' /proc/mounts || true)"
+              echo "WORK_MOUNT=$(grep \" /work \" /proc/mounts || true)"
               stat -c "WORK_BINARY mode=%a uid=%u gid=%g size=%s" /work/hello
               file /work/hello 2>/dev/null || true
               test "$(/work/hello)" = "sandbox-ok"
