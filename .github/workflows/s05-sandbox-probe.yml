@@ -1,0 +1,106 @@
+name: S05 Sandbox Probe
+
+on:
+  push:
+    branches:
+      - "build/s05-sandbox-probe-*"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Runner and Docker facts
+        run: |
+          set -euo pipefail
+          uname -a
+          docker version
+          docker info --format 'Server={{.ServerVersion}} Driver={{.Driver}} Cgroup={{.CgroupVersion}} Security={{json .SecurityOptions}}'
+
+      - name: Resolve Rust image
+        run: |
+          set -euo pipefail
+          docker pull rust:1.98.1-slim-bookworm
+          image_digest="$(docker image inspect rust:1.98.1-slim-bookworm --format '{{index .RepoDigests 0}}')"
+          test -n "$image_digest"
+          echo "S05_PROBE_IMAGE=$image_digest" >> "$GITHUB_ENV"
+          echo "Resolved image: $image_digest"
+
+      - name: Hardened container boundary probe
+        run: |
+          set -euo pipefail
+          name="noerith-s05-probe-${GITHUB_RUN_ID}"
+          cleanup() { docker rm -f "$name" >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+
+          docker create \
+            --name "$name" \
+            --network none \
+            --read-only \
+            --cap-drop ALL \
+            --security-opt no-new-privileges:true \
+            --pids-limit 64 \
+            --memory 1g \
+            --memory-swap 1g \
+            --cpus 0.5 \
+            --user 65532:65532 \
+            --tmpfs /tmp:rw,nosuid,nodev,noexec,size=64m \
+            --tmpfs /work:rw,nosuid,nodev,size=256m \
+            "$S05_PROBE_IMAGE" \
+            sh -lc '
+              set -eu
+              test "$(id -u)" = "65532"
+              grep -Eq "^CapEff:[[:space:]]+0+$" /proc/self/status
+              grep -Eq "^NoNewPrivs:[[:space:]]+1$" /proc/self/status
+
+              if touch /noerith-root-write-probe 2>/dev/null; then
+                echo "root filesystem unexpectedly writable" >&2
+                exit 21
+              fi
+
+              touch /tmp/noerith-tmp-ok
+              touch /work/noerith-work-ok
+
+              if env | grep -Eq "^(GITHUB_|ACTIONS_)"; then
+                echo "host CI environment leaked into sandbox" >&2
+                exit 22
+              fi
+
+              if getent hosts example.com >/dev/null 2>&1; then
+                echo "external name resolution unexpectedly available" >&2
+                exit 23
+              fi
+
+              printf "fn main() { println!(\"sandbox-ok\"); }\n" > /work/main.rs
+              rustc /work/main.rs -o /work/hello
+              test "$(/work/hello)" = "sandbox-ok"
+
+              echo "UID=$(id -u)"
+              grep -E "^(CapEff|NoNewPrivs):" /proc/self/status
+              printf "ROUTE_TABLE_BEGIN\n"
+              cat /proc/net/route
+              printf "ROUTE_TABLE_END\n"
+              printf "CGROUP_PIDS_MAX="
+              cat /sys/fs/cgroup/pids.max 2>/dev/null || true
+              printf "CGROUP_MEMORY_MAX="
+              cat /sys/fs/cgroup/memory.max 2>/dev/null || true
+              printf "CGROUP_CPU_MAX="
+              cat /sys/fs/cgroup/cpu.max 2>/dev/null || true
+              rustc --version
+            '
+
+          echo "HostConfig:"
+          docker inspect "$name" --format '{{json .HostConfig}}'
+          docker start -a "$name"
+
+          docker rm "$name"
+          trap - EXIT
+
+          if docker ps -a --format '{{.Names}}' | grep -qx "$name"; then
+            echo "container cleanup failed" >&2
+            exit 24
+          fi
+          echo "S05_SANDBOX_PROBE: PASS"
