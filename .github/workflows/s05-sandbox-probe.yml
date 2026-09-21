@@ -48,7 +48,7 @@ jobs:
             --cpus 0.5 \
             --user 65532:65532 \
             --tmpfs /tmp:rw,nosuid,nodev,noexec,size=64m \
-            --tmpfs /work:rw,nosuid,nodev,size=256m \
+            --tmpfs /work:rw,nosuid,nodev,exec,size=256m \
             "$S05_PROBE_IMAGE" \
             sh -c '
               set -eu
