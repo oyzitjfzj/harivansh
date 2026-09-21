@@ -5,4 +5,4 @@ private_candidate_blob_count=130
 mirror_exact_candidate_blobs=115
 additional_private_verification_files=24
 excluded_private_docs_handoff_research=true
-trigger_revision=4
+trigger_revision=5
