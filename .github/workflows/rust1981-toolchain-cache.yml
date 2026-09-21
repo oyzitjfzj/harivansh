@@ -1,0 +1,45 @@
+name: Rust 1.98.1 disposable toolchain cache
+
+on:
+  push:
+    branches:
+      - "build/rust1981-toolchain-cache-20260922"
+
+permissions:
+  contents: read
+
+jobs:
+  package-toolchain:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Install exact Rust
+        run: |
+          set -euxo pipefail
+          rustup toolchain install 1.98.1 --profile minimal --component rustfmt,clippy
+          rustup run 1.98.1 rustc --version
+          rustup run 1.98.1 cargo --version
+          rustup run 1.98.1 rustfmt --version
+          rustup run 1.98.1 cargo clippy --version
+
+      - name: Package exact installed toolchain
+        id: package
+        run: |
+          set -euxo pipefail
+          SYSROOT="$(rustup run 1.98.1 rustc --print sysroot)"
+          TOOLCHAIN_DIR="$(basename "$SYSROOT")"
+          PARENT="$(dirname "$SYSROOT")"
+          tar -C "$PARENT" -czf "$RUNNER_TEMP/rust-1.98.1-x86_64-unknown-linux-gnu.tar.gz" "$TOOLCHAIN_DIR"
+          sha256sum "$RUNNER_TEMP/rust-1.98.1-x86_64-unknown-linux-gnu.tar.gz" | tee "$RUNNER_TEMP/rust-1.98.1-x86_64-unknown-linux-gnu.tar.gz.sha256"
+          echo "archive=$RUNNER_TEMP/rust-1.98.1-x86_64-unknown-linux-gnu.tar.gz" >> "$GITHUB_OUTPUT"
+
+      - name: Upload exact toolchain artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-1.98.1-x86_64-unknown-linux-gnu
+          path: |
+            ${{ steps.package.outputs.archive }}
+            ${{ runner.temp }}/rust-1.98.1-x86_64-unknown-linux-gnu.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
