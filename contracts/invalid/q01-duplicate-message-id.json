@@ -1,8 +1,0 @@
-{
-  "message_id": "message-0001",
-  "message_id": "message-0002",
-  "tenant_namespace": "tenant-test",
-  "producer_principal": "principal-test",
-  "payload": {"a":"alpha","b":2,"flags":[true,false,null]},
-  "payload_digest": "b3403a30d3c4f301fb0dc3c6a8835f34174ae35ab58377ee18f89c26e52c9d65"
-}

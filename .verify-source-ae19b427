@@ -1,7 +1,0 @@
-private_candidate=ae19b4274a64d4722cf00a5cc7c34f1328c20f9e
-private_base=fb9a1c5842d42ba2f85c854d2edf51822b1104ac
-verification_scope=s04-full-workspace-minimal-public-mirror
-authorized_private_files_added=24
-public_base=2c7acd0426ccd9b93ffd256a59a4e564c3ae7249
-public_branch=build/s04-promotion-exact-20260922
-note=docs-research-handoff-evidence omitted; public mirror is verifier only
