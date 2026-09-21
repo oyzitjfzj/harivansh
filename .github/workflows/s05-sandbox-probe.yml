@@ -50,7 +50,7 @@ jobs:
             --tmpfs /tmp:rw,nosuid,nodev,noexec,size=64m \
             --tmpfs /work:rw,nosuid,nodev,size=256m \
             "$S05_PROBE_IMAGE" \
-            sh -lc '
+            sh -c '
               set -eu
               test "$(id -u)" = "65532"
               grep -Eq "^CapEff:[[:space:]]+0+$" /proc/self/status
