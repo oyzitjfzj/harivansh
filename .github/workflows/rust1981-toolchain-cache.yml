@@ -22,24 +22,63 @@ jobs:
           rustup run 1.98.1 rustfmt --version
           rustup run 1.98.1 cargo clippy --version
 
-      - name: Package exact installed toolchain
-        id: package
+      - name: Package and split exact installed toolchain
         run: |
           set -euxo pipefail
           SYSROOT="$(rustup run 1.98.1 rustc --print sysroot)"
           TOOLCHAIN_DIR="$(basename "$SYSROOT")"
           PARENT="$(dirname "$SYSROOT")"
-          tar -C "$PARENT" -czf "$RUNNER_TEMP/rust-1.98.1-x86_64-unknown-linux-gnu.tar.gz" "$TOOLCHAIN_DIR"
-          sha256sum "$RUNNER_TEMP/rust-1.98.1-x86_64-unknown-linux-gnu.tar.gz" | tee "$RUNNER_TEMP/rust-1.98.1-x86_64-unknown-linux-gnu.tar.gz.sha256"
-          echo "archive=$RUNNER_TEMP/rust-1.98.1-x86_64-unknown-linux-gnu.tar.gz" >> "$GITHUB_OUTPUT"
+          ARCHIVE="$RUNNER_TEMP/rust-1.98.1-x86_64-unknown-linux-gnu.tar.gz"
+          tar -C "$PARENT" -czf "$ARCHIVE" "$TOOLCHAIN_DIR"
+          sha256sum "$ARCHIVE" | tee "$RUNNER_TEMP/rust-1.98.1-x86_64-unknown-linux-gnu.tar.gz.sha256"
+          split -b 70000000 -d -a 2 "$ARCHIVE" "$RUNNER_TEMP/rust-1.98.1.part"
+          test -f "$RUNNER_TEMP/rust-1.98.1.part00"
+          test -f "$RUNNER_TEMP/rust-1.98.1.part01"
+          test -f "$RUNNER_TEMP/rust-1.98.1.part02"
+          test -f "$RUNNER_TEMP/rust-1.98.1.part03"
+          wc -c "$RUNNER_TEMP"/rust-1.98.1.part*
 
-      - name: Upload exact toolchain artifact
+      - name: Upload part 00
         uses: actions/upload-artifact@v4
         with:
-          name: rust-1.98.1-x86_64-unknown-linux-gnu
-          path: |
-            ${{ steps.package.outputs.archive }}
-            ${{ runner.temp }}/rust-1.98.1-x86_64-unknown-linux-gnu.tar.gz.sha256
+          name: rust1981-part00
+          path: ${{ runner.temp }}/rust-1.98.1.part00
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      - name: Upload part 01
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust1981-part01
+          path: ${{ runner.temp }}/rust-1.98.1.part01
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      - name: Upload part 02
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust1981-part02
+          path: ${{ runner.temp }}/rust-1.98.1.part02
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      - name: Upload part 03
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust1981-part03
+          path: ${{ runner.temp }}/rust-1.98.1.part03
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      - name: Upload checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust1981-checksum
+          path: ${{ runner.temp }}/rust-1.98.1-x86_64-unknown-linux-gnu.tar.gz.sha256
           if-no-files-found: error
           retention-days: 1
           compression-level: 0
