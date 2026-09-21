@@ -1,6 +1,8 @@
 private_candidate=ae19b4274a64d4722cf00a5cc7c34f1328c20f9e
-verification_scope=S04-full-workspace-promotion-minimal
+private_main=ae19b4274a64d4722cf00a5cc7c34f1328c20f9e
+verification_scope=S04-full-workspace-post-promotion-main-reverification
 private_candidate_blob_count=130
 mirror_exact_candidate_blobs=115
 additional_private_verification_files=24
-trigger_revision=3
+excluded_private_docs_handoff_research=true
+trigger_revision=4
