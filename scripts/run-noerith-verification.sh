@@ -5,7 +5,7 @@ ROOT="${RUNNER_TEMP:-/tmp}/noerith-private-source"
 LOG_DIR="${RUNNER_TEMP:-/tmp}/noerith-private-verify-logs"
 TARGET_SHA="${TARGET_SHA:-}"
 
-scripts/validate-noerith-sha.sh "$TARGET_SHA"
+bash scripts/validate-noerith-sha.sh "$TARGET_SHA"
 
 if [[ ! -d "$ROOT/.git" ]]; then
   echo "NOERITH_VERIFY_RESULT=FAIL phase=source-missing" >&2
