@@ -7,7 +7,7 @@ PRIVATE_READ_TOKEN="${PRIVATE_READ_TOKEN:-}"
 DEST="${RUNNER_TEMP:-/tmp}/noerith-private-source"
 ACCESS_LOG="${RUNNER_TEMP:-/tmp}/noerith-private-access.log"
 
-scripts/validate-noerith-sha.sh "$TARGET_SHA"
+bash scripts/validate-noerith-sha.sh "$TARGET_SHA"
 
 if [[ -z "$PRIVATE_READ_TOKEN" ]]; then
   echo "NOERITH_VERIFY_ACCESS_MISSING_CREDENTIAL" >&2
