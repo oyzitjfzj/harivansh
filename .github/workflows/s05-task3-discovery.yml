@@ -1,0 +1,99 @@
+name: S05 Task3 source-free Docker discovery
+
+on:
+  push:
+    branches:
+      - "build/s05-task3-discovery-20260922"
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Exact runtime and profile discovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="rust@sha256:ff521445a372125ed4f76e1453a1f8098f2d05332d1601d30db1c1f62757e730"
+          docker pull rust:1.98.1-slim-bookworm >/dev/null
+          actual="$(docker image inspect rust:1.98.1-slim-bookworm --format '{{index .RepoDigests 0}}')"
+          test "$actual" = "$expected"
+
+          echo "RUNNER_IMAGE_OS=${ImageOS:-unknown}"
+          echo "RUNNER_IMAGE_VERSION=${ImageVersion:-unknown}"
+          uname -srvmo
+          docker version --format 'CLIENT={{.Client.Version}} SERVER={{.Server.Version}}'
+          docker info --format 'CGROUP={{.CgroupVersion}} SECURITY={{json .SecurityOptions}}'
+          containerd --version || true
+          runc --version | head -n 1 || true
+
+          name="s05-task3-base-$GITHUB_RUN_ID"
+          cleanup() { docker rm -f "$name" >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+          docker create             --name "$name"             --pull=never             --network=none             --cgroupns=private             --ipc=private             --shm-size=33554432b             --read-only             --cap-drop=ALL             --security-opt=no-new-privileges=true             --security-opt=seccomp=builtin             --user=65532:65532             --memory=134217728b             --memory-swap=134217728b             --cpus=0.750             --pids-limit=64             --tmpfs=/tmp:rw,noexec,nosuid,nodev,size=33554432             --tmpfs=/work:rw,noexec,nosuid,nodev,size=33554432             --workdir=/work             "$expected"             sh -c '
+              set -eu
+              echo "UID=$(id -u) GID=$(id -g)"
+              grep -E "^(CapEff|NoNewPrivs):" /proc/self/status
+              printf "ROUTES="; tail -n +2 /proc/net/route | wc -l
+              printf "PIDS_MAX="; cat /sys/fs/cgroup/pids.max
+              printf "MEMORY_MAX="; cat /sys/fs/cgroup/memory.max
+              printf "MEMORY_SWAP_MAX="; cat /sys/fs/cgroup/memory.swap.max
+              printf "CPU_MAX="; cat /sys/fs/cgroup/cpu.max
+              printf "TMP_MOUNT="; grep " /tmp " /proc/mounts
+              printf "WORK_MOUNT="; grep " /work " /proc/mounts
+              printf "SHM_MOUNT="; grep " /dev/shm " /proc/mounts
+              if touch /rootfs-write-probe 2>/dev/null; then exit 21; fi
+              touch /tmp/write-ok /work/write-ok
+              printf "#!/bin/sh\necho should-not-run\n" > /work/noexec-probe
+              chmod +x /work/noexec-probe
+              if /work/noexec-probe >/dev/null 2>&1; then exit 22; fi
+              if env | grep -Eq "^(GITHUB_|ACTIONS_)"; then exit 23; fi
+              echo "BASE_CASE=PASS"
+            ' >/dev/null
+          docker inspect "$name" --format 'HOSTCONFIG={{json .HostConfig}}'
+          docker start -a "$name"
+          docker rm "$name" >/dev/null
+          test -z "$(docker ps -a --no-trunc --filter "name=$name" --format '{{.ID}}')"
+          trap - EXIT
+          echo "BASE_CLEANUP=PASS"
+
+          pids_name="s05-task3-pids-$GITHUB_RUN_ID"
+          docker create             --name "$pids_name"             --pull=never --network=none --cgroupns=private --ipc=private             --shm-size=33554432b --read-only --cap-drop=ALL             --security-opt=no-new-privileges=true --security-opt=seccomp=builtin             --user=65532:65532 --memory=134217728b --memory-swap=134217728b             --cpus=0.750 --pids-limit=64             --tmpfs=/tmp:rw,noexec,nosuid,nodev,size=33554432             --tmpfs=/work:rw,noexec,nosuid,nodev,size=33554432             --workdir=/work "$expected" sh -c '
+              i=0
+              while [ "$i" -lt 80 ]; do
+                sleep 2 &
+                rc=$?
+                if [ "$rc" -ne 0 ]; then
+                  echo "FORK_FAIL_AT=$i"
+                  break
+                fi
+                i=$((i+1))
+              done
+              wait || true
+              echo "SPAWN_ATTEMPTS=$i"
+              cat /sys/fs/cgroup/pids.events
+            ' >/dev/null
+          set +e
+          docker start -a "$pids_name"
+          pids_rc=$?
+          set -e
+          echo "PIDS_WORKLOAD_RC=$pids_rc"
+          docker rm -f "$pids_name" >/dev/null 2>&1 || true
+          test -z "$(docker ps -a --no-trunc --filter "name=$pids_name" --format '{{.ID}}')"
+          echo "PIDS_CLEANUP=PASS"
+
+          kill_name="s05-task3-kill-$GITHUB_RUN_ID"
+          docker create             --name "$kill_name"             --pull=never --network=none --cgroupns=private --ipc=private             --shm-size=33554432b --read-only --cap-drop=ALL             --security-opt=no-new-privileges=true --security-opt=seccomp=builtin             --user=65532:65532 --memory=134217728b --memory-swap=134217728b             --cpus=0.750 --pids-limit=64             --tmpfs=/tmp:rw,noexec,nosuid,nodev,size=33554432             --tmpfs=/work:rw,noexec,nosuid,nodev,size=33554432             --workdir=/work "$expected" sh -c 'kill -KILL $$' >/dev/null
+          set +e
+          docker start -a "$kill_name"
+          kill_rc=$?
+          set -e
+          echo "KILLED_WORKLOAD_RC=$kill_rc"
+          test "$kill_rc" -eq 137
+          docker rm -f "$kill_name" >/dev/null
+          test -z "$(docker ps -a --no-trunc --filter "name=$kill_name" --format '{{.ID}}')"
+          echo "KILL_CLEANUP=PASS"
+          echo "S05_TASK3_DISCOVERY=PASS"
