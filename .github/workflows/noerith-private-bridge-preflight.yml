@@ -1,0 +1,59 @@
+name: NOERITH private bridge preflight
+
+on:
+  push:
+    branches:
+      - "build/noerith-private-bridge-preflight-20260922"
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Validate runner and private read bridge
+        shell: bash
+        env:
+          PRIVATE_REPOSITORY: ${{ secrets.NOERITH_PRIVATE_REPOSITORY }}
+          PRIVATE_TOKEN: ${{ secrets.NOERITH_PRIVATE_READ_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          rustup toolchain install 1.98.1 --profile minimal >/dev/null
+          rustc_version="$(rustup run 1.98.1 rustc --version)"
+          cargo_version="$(rustup run 1.98.1 cargo --version)"
+          echo "NOERITH_PREFLIGHT_RUSTC=$rustc_version"
+          echo "NOERITH_PREFLIGHT_CARGO=$cargo_version"
+
+          if [[ -z "${PRIVATE_REPOSITORY:-}" || -z "${PRIVATE_TOKEN:-}" ]]; then
+            echo "NOERITH_PRIVATE_BRIDGE_SECRETS=UNAVAILABLE"
+            exit 2
+          fi
+
+          echo "::add-mask::$PRIVATE_REPOSITORY"
+          echo "::add-mask::$PRIVATE_TOKEN"
+          auth="$(printf 'x-access-token:%s' "$PRIVATE_TOKEN" | base64 -w0)"
+          err="$RUNNER_TEMP/noerith-private-ls-remote.log"
+          set +e
+          remote_line="$(git -c http.extraHeader="AUTHORIZATION: basic $auth" \
+            ls-remote "https://github.com/${PRIVATE_REPOSITORY}.git" \
+            refs/heads/build/noerith-work 2>"$err")"
+          rc=$?
+          set -e
+          unset PRIVATE_TOKEN auth
+
+          if [[ "$rc" -ne 0 || -z "$remote_line" ]]; then
+            echo "NOERITH_PRIVATE_BRIDGE_ACCESS=FAIL"
+            echo "Private access diagnostics intentionally suppressed."
+            exit 3
+          fi
+
+          actual="$(printf '%s\n' "$remote_line" | awk '{print $1}')"
+          test -n "$actual"
+          echo "::add-mask::$actual"
+          proof="$(printf '%s' "$actual" | sha256sum | awk '{print $1}')"
+          echo "NOERITH_PRIVATE_BRIDGE_SECRETS=AVAILABLE"
+          echo "NOERITH_PRIVATE_BRIDGE_ACCESS=PASS"
+          echo "NOERITH_PRIVATE_HEAD_PROOF=sha256:$proof"
