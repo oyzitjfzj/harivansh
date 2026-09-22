@@ -33,7 +33,7 @@ jobs:
           name="s05-task3-base-$GITHUB_RUN_ID"
           cleanup() { docker rm -f "$name" >/dev/null 2>&1 || true; }
           trap cleanup EXIT
-          docker create             --name "$name"             --pull=never             --network=none             --cgroupns=private             --ipc=private             --shm-size=33554432b             --read-only             --cap-drop=ALL             --security-opt=no-new-privileges=true             --security-opt=seccomp=builtin             --user=65532:65532             --memory=134217728b             --memory-swap=134217728b             --cpus=0.750             --pids-limit=64             --tmpfs=/tmp:rw,noexec,nosuid,nodev,size=33554432             --tmpfs=/work:rw,noexec,nosuid,nodev,size=33554432             --workdir=/work             "$expected"             sh -c '
+          docker create             --name "$name"             --pull=never             --network=none             --cgroupns=private             --ipc=private             --shm-size=33554432b             --read-only             --cap-drop=ALL             --security-opt=no-new-privileges=true             --security-opt=seccomp=builtin             --user=65532:65532             --memory=134217728b             --memory-swap=134217728b             --cpus=0.750             --pids-limit=64             --tmpfs=/tmp:rw,noexec,nosuid,nodev,size=33554432,mode=0700,uid=65532,gid=65532             --tmpfs=/work:rw,noexec,nosuid,nodev,size=33554432,mode=0700,uid=65532,gid=65532             --workdir=/work             "$expected"             sh -c '
               set -eu
               echo "UID=$(id -u) GID=$(id -g)"
               grep -E "^(CapEff|NoNewPrivs):" /proc/self/status
@@ -61,7 +61,7 @@ jobs:
           echo "BASE_CLEANUP=PASS"
 
           pids_name="s05-task3-pids-$GITHUB_RUN_ID"
-          docker create             --name "$pids_name"             --pull=never --network=none --cgroupns=private --ipc=private             --shm-size=33554432b --read-only --cap-drop=ALL             --security-opt=no-new-privileges=true --security-opt=seccomp=builtin             --user=65532:65532 --memory=134217728b --memory-swap=134217728b             --cpus=0.750 --pids-limit=64             --tmpfs=/tmp:rw,noexec,nosuid,nodev,size=33554432             --tmpfs=/work:rw,noexec,nosuid,nodev,size=33554432             --workdir=/work "$expected" sh -c '
+          docker create             --name "$pids_name"             --pull=never --network=none --cgroupns=private --ipc=private             --shm-size=33554432b --read-only --cap-drop=ALL             --security-opt=no-new-privileges=true --security-opt=seccomp=builtin             --user=65532:65532 --memory=134217728b --memory-swap=134217728b             --cpus=0.750 --pids-limit=64             --tmpfs=/tmp:rw,noexec,nosuid,nodev,size=33554432,mode=0700,uid=65532,gid=65532             --tmpfs=/work:rw,noexec,nosuid,nodev,size=33554432,mode=0700,uid=65532,gid=65532             --workdir=/work "$expected" sh -c '
               i=0
               while [ "$i" -lt 80 ]; do
                 sleep 2 &
@@ -86,7 +86,7 @@ jobs:
           echo "PIDS_CLEANUP=PASS"
 
           kill_name="s05-task3-kill-$GITHUB_RUN_ID"
-          docker create             --name "$kill_name"             --pull=never --network=none --cgroupns=private --ipc=private             --shm-size=33554432b --read-only --cap-drop=ALL             --security-opt=no-new-privileges=true --security-opt=seccomp=builtin             --user=65532:65532 --memory=134217728b --memory-swap=134217728b             --cpus=0.750 --pids-limit=64             --tmpfs=/tmp:rw,noexec,nosuid,nodev,size=33554432             --tmpfs=/work:rw,noexec,nosuid,nodev,size=33554432             --workdir=/work "$expected" sh -c 'kill -KILL $$' >/dev/null
+          docker create             --name "$kill_name"             --pull=never --network=none --cgroupns=private --ipc=private             --shm-size=33554432b --read-only --cap-drop=ALL             --security-opt=no-new-privileges=true --security-opt=seccomp=builtin             --user=65532:65532 --memory=134217728b --memory-swap=134217728b             --cpus=0.750 --pids-limit=64             --tmpfs=/tmp:rw,noexec,nosuid,nodev,size=33554432,mode=0700,uid=65532,gid=65532             --tmpfs=/work:rw,noexec,nosuid,nodev,size=33554432,mode=0700,uid=65532,gid=65532             --workdir=/work "$expected" sh -c 'kill -KILL $$' >/dev/null
           set +e
           docker start -a "$kill_name"
           kill_rc=$?
