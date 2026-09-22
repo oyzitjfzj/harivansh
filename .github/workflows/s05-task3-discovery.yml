@@ -80,7 +80,10 @@ jobs:
           docker start -a "$pids_name"
           pids_rc=$?
           set -e
-          echo "PIDS_WORKLOAD_RC=$pids_rc"
+          echo "PIDS_START_CLI_RC=$pids_rc"
+          pids_state="$(docker inspect "$pids_name" --format '{{.State.ExitCode}}')"
+          echo "PIDS_CONTAINER_EXIT=$pids_state"
+          test "$pids_state" -ne 0
           docker rm -f "$pids_name" >/dev/null 2>&1 || true
           test -z "$(docker ps -a --no-trunc --filter "name=$pids_name" --format '{{.ID}}')"
           echo "PIDS_CLEANUP=PASS"
@@ -91,8 +94,11 @@ jobs:
           docker start -a "$kill_name"
           kill_rc=$?
           set -e
-          echo "KILLED_WORKLOAD_RC=$kill_rc"
-          test "$kill_rc" -eq 137
+          echo "KILL_START_CLI_RC=$kill_rc"
+          kill_state="$(docker inspect "$kill_name" --format '{{.State.ExitCode}}')"
+          echo "KILL_CONTAINER_EXIT=$kill_state"
+          test "$kill_rc" -eq 0
+          test "$kill_state" -eq 137
           docker rm -f "$kill_name" >/dev/null
           test -z "$(docker ps -a --no-trunc --filter "name=$kill_name" --format '{{.ID}}')"
           echo "KILL_CLEANUP=PASS"
