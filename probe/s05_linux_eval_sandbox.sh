@@ -102,27 +102,24 @@ assert_absent "$success_name"
 
 pid_name="${prefix}-pid"
 create_profile "$pid_name" sh -c '
-  set +e
-  started=0
   i=0
   while [ "$i" -lt 96 ]; do
     sleep 2 &
-    rc=$?
-    if [ "$rc" -ne 0 ]; then
-      break
-    fi
-    started=$((started + 1))
     i=$((i + 1))
   done
-  echo "PID_STARTED=$started"
-  if [ "$started" -ge 96 ]; then
-    echo "PID limit did not bound process creation" >&2
-    exit 31
-  fi
-  wait >/dev/null 2>&1 || true
-  exit 0
+  wait
 '
+set +e
 timeout 30s docker start -a "$pid_name"
+pid_start_rc=$?
+set -e
+pid_exit="$(docker inspect "$pid_name" --format '{{.State.ExitCode}}')"
+echo "PID_START_RC=$pid_start_rc"
+echo "PID_EXIT_CODE=$pid_exit"
+if [ "$pid_exit" = "0" ]; then
+  echo "PID pressure unexpectedly completed without hitting the configured limit" >&2
+  exit 31
+fi
 docker rm "$pid_name" >/dev/null
 assert_absent "$pid_name"
 
