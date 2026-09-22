@@ -1,0 +1,51 @@
+name: NOERITH exact private-head verification
+
+on:
+  push:
+    branches:
+      - "build/noerith-private-verify-20260923"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: noerith-private-verify-20260923
+  cancel-in-progress: false
+
+jobs:
+  relay-self-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout relay only
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Validate relay privacy contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tests/test-noerith-relay-contract.sh
+
+  verify:
+    needs: relay-self-test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      TARGET_SHA: 70f4daba6aae80421a0651ff17ec393f4e9eac33
+    steps:
+      - name: Checkout relay only
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Exact private NOERITH checkout
+        shell: bash
+        env:
+          PRIVATE_READ_TOKEN: ${{ secrets.PRIVATE_READ_TOKEN }}
+        run: bash scripts/checkout-noerith-private.sh
+
+      - name: Current-head verification
+        shell: bash
+        run: bash scripts/run-noerith-verification.sh
