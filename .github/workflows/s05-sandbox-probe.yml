@@ -13,26 +13,63 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - name: Checkout probe harness
-        uses: actions/checkout@v4
-
-      - name: Runner and Docker facts
+      - name: Resolve exact Rust image and runtime
+        shell: bash
         run: |
           set -euo pipefail
-          uname -a
-          echo "ImageOS=${ImageOS:-unknown}"
-          echo "ImageVersion=${ImageVersion:-unknown}"
-          docker version
-          docker info --format 'Server={{.ServerVersion}} Driver={{.Driver}} Cgroup={{.CgroupVersion}} Security={{json .SecurityOptions}}'
+          echo "DISCOVERY_IMAGE_OS=${ImageOS:-unknown}"
+          echo "DISCOVERY_IMAGE_VERSION=${ImageVersion:-unknown}"
+          docker version --format 'DISCOVERY_DOCKER_CLIENT={{.Client.Version}}'
+          docker version --format 'DISCOVERY_DOCKER_SERVER={{.Server.Version}}'
+          docker info --format 'DISCOVERY_SECURITY={{json .SecurityOptions}}'
+          docker pull rust:1.98.1-slim-bookworm >/dev/null
+          image="$(docker image inspect rust:1.98.1-slim-bookworm --format '{{index .RepoDigests 0}}')"
+          test -n "$image"
+          echo "S05_PROBE_IMAGE=$image" >> "$GITHUB_ENV"
+          echo "DISCOVERY_IMAGE=$image"
 
-      - name: Resolve exact Rust image
+      - name: Measure exact first-profile writable surfaces
+        shell: bash
         run: |
           set -euo pipefail
-          docker pull rust:1.98.1-slim-bookworm
-          image_digest="$(docker image inspect rust:1.98.1-slim-bookworm --format '{{index .RepoDigests 0}}')"
-          test -n "$image_digest"
-          echo "S05_PROBE_IMAGE=$image_digest" >> "$GITHUB_ENV"
-          echo "Resolved image: $image_digest"
-
-      - name: Qualify bounded Linux evaluation sandbox
-        run: bash probe/s05_linux_eval_sandbox.sh
+          name="noerith-s05-discovery-${GITHUB_RUN_ID}"
+          cleanup() { docker rm -f "$name" >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+          docker create             --name "$name"             --pull=never             --network=none             --cgroupns=private             --ipc=private             --shm-size=33554432b             --read-only             --cap-drop=ALL             --security-opt=no-new-privileges=true             --security-opt=seccomp=builtin             --user=65532:65532             --memory=134217728b             --memory-swap=134217728b             --cpus=0.750             --pids-limit=64             --tmpfs=/tmp:rw,noexec,nosuid,nodev,size=33554432             --tmpfs=/work:rw,noexec,nosuid,nodev,size=33554432             --workdir=/work             "$S05_PROBE_IMAGE"             sh -eu -c '
+              probe() {
+                label="$1"; path="$2"
+                if touch "$path" 2>/dev/null; then
+                  rm -f "$path" 2>/dev/null || true
+                  echo "WRITE_${label}=YES"
+                else
+                  echo "WRITE_${label}=NO"
+                fi
+              }
+              echo "UID=$(id -u)"
+              grep -E "^(CapEff|NoNewPrivs):" /proc/self/status
+              probe ROOT /noerith-root-probe
+              probe ETC /etc/noerith-probe
+              probe VAR_TMP /var/tmp/noerith-probe
+              probe RUN /run/noerith-probe
+              probe TMP /tmp/noerith-probe
+              probe WORK /work/noerith-probe
+              probe DEV /dev/noerith-probe
+              probe DEV_SHM /dev/shm/noerith-probe
+              cp /bin/true /work/noerith-exec-probe
+              if /work/noerith-exec-probe 2>/dev/null; then
+                echo "WORK_NOEXEC=NO"
+              else
+                echo "WORK_NOEXEC=YES"
+              fi
+              rm -f /work/noerith-exec-probe
+              grep -E " /(tmp|work|dev|dev/shm) " /proc/mounts || true
+            '
+          docker inspect "$name" --format 'DISCOVERY_HOST_CONFIG={{json .HostConfig}}'
+          docker start --attach "$name"
+          docker rm "$name" >/dev/null
+          trap - EXIT
+          if docker ps -a --no-trunc --format '{{.Names}}' | grep -qx "$name"; then
+            echo "DISCOVERY_CLEANUP=FAIL"
+            exit 1
+          fi
+          echo "DISCOVERY_CLEANUP=PASS"
