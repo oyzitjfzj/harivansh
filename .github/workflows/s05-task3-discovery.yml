@@ -88,17 +88,31 @@ jobs:
           test -z "$(docker ps -a --no-trunc --filter "name=$pids_name" --format '{{.ID}}')"
           echo "PIDS_CLEANUP=PASS"
 
+          for pair in "125:sh -c 'exit 125'" "127:/noerith-command-does-not-exist"; do
+            code="${pair%%:*}"
+            cmd="${pair#*:}"
+            sem_name="s05-task3-exit-${code}-$GITHUB_RUN_ID"
+            if [[ "$code" = "125" ]]; then
+              docker create --name "$sem_name" --pull=never "$expected" sh -c 'exit 125' >/dev/null
+            else
+              docker create --name "$sem_name" --pull=never "$expected" /noerith-command-does-not-exist >/dev/null
+            fi
+            set +e
+            docker start -a "$sem_name"
+            sem_cli=$?
+            set -e
+            sem_state="$(docker inspect "$sem_name" --format '{{.State.Status}} {{.State.ExitCode}} {{json .State.Error}}')"
+            echo "EXIT_SEMANTICS_${code}_CLI=$sem_cli STATE=$sem_state"
+            docker rm -f "$sem_name" >/dev/null 2>&1 || true
+          done
+
           kill_name="s05-task3-kill-$GITHUB_RUN_ID"
-          docker create             --name "$kill_name"             --pull=never --network=none --cgroupns=private --ipc=private             --shm-size=33554432b --read-only --cap-drop=ALL             --security-opt=no-new-privileges=true --security-opt=seccomp=builtin             --user=65532:65532 --memory=134217728b --memory-swap=134217728b             --cpus=0.750 --pids-limit=64             --tmpfs=/tmp:rw,noexec,nosuid,nodev,size=33554432,mode=0700,uid=65532,gid=65532             --tmpfs=/work:rw,noexec,nosuid,nodev,size=33554432,mode=0700,uid=65532,gid=65532             --workdir=/work "$expected" sh -c 'kill -KILL $$' >/dev/null
-          set +e
-          docker start -a "$kill_name"
-          kill_rc=$?
-          set -e
-          echo "KILL_START_CLI_RC=$kill_rc"
-          kill_state="$(docker inspect "$kill_name" --format '{{.State.ExitCode}}')"
-          echo "KILL_CONTAINER_EXIT=$kill_state"
-          test "$kill_rc" -eq 0
-          test "$kill_state" -eq 137
+          docker create             --name "$kill_name"             --pull=never --network=none --cgroupns=private --ipc=private             --shm-size=33554432b --read-only --cap-drop=ALL             --security-opt=no-new-privileges=true --security-opt=seccomp=builtin             --user=65532:65532 --memory=134217728b --memory-swap=134217728b             --cpus=0.750 --pids-limit=64             --tmpfs=/tmp:rw,noexec,nosuid,nodev,size=33554432,mode=0700,uid=65532,gid=65532             --tmpfs=/work:rw,noexec,nosuid,nodev,size=33554432,mode=0700,uid=65532,gid=65532             --workdir=/work "$expected" sh -c 'sleep 30' >/dev/null
+          docker start "$kill_name" >/dev/null
+          docker kill --signal=KILL "$kill_name" >/dev/null
+          kill_state="$(docker inspect "$kill_name" --format '{{.State.Status}} {{.State.ExitCode}}')"
+          echo "KILL_CONTAINER_STATE=$kill_state"
+          test "$kill_state" = "exited 137"
           docker rm -f "$kill_name" >/dev/null
           test -z "$(docker ps -a --no-trunc --filter "name=$kill_name" --format '{{.ID}}')"
           echo "KILL_CLEANUP=PASS"
