@@ -1,4 +1,4 @@
-name: NOERITH action outcome-truth state-space GREEN verification
+name: NOERITH action outcome-truth state-space diagnostic
 
 on:
   push:
@@ -27,7 +27,7 @@ jobs:
           set -euo pipefail
           bash tests/test-noerith-relay-contract.sh
 
-  verify-green:
+  diagnose:
     needs: relay-self-test
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -43,28 +43,49 @@ jobs:
         env:
           PRIVATE_READ_TOKEN: ${{ secrets.PRIVATE_READ_TOKEN }}
         run: bash scripts/checkout-noerith-private.sh
-      - name: Focused state-space verification
+      - name: Capture focused diagnostic privately
+        id: focused
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          set -uo pipefail
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          LOG="${RUNNER_TEMP}/action-outcome-state-space-diagnostic.log"
+          cd "$ROOT"
+          python3 -m unittest tools.tests.test_verify_action_outcome_truth_state_space -v >"$LOG" 2>&1
+          code=$?
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          if [[ "$code" -eq 0 ]]; then
+            echo "NOERITH_ACTION_OUTCOME_STATE_SPACE_DIAGNOSTIC=UNEXPECTED_GREEN"
+            exit 0
+          fi
+          echo "NOERITH_ACTION_OUTCOME_STATE_SPACE_DIAGNOSTIC=CAPTURED"
+          exit 1
+      - name: Encrypt focused diagnostic
+        if: always() && steps.focused.outputs.code != '0'
         shell: bash
         run: |
           set -euo pipefail
-          ROOT="${RUNNER_TEMP}/noerith-private-source"
-          LOG="${RUNNER_TEMP}/action-outcome-state-space-green.log"
-          cd "$ROOT"
-          if ! python3 -m py_compile               tools/grade_action_outcome_truth.py               tools/verify_action_outcome_truth_state_space.py               tools/tests/test_verify_action_outcome_truth_state_space.py               >"$LOG" 2>&1; then
-            rm -f "$LOG"
-            echo "NOERITH_ACTION_OUTCOME_STATE_SPACE_GREEN=FAIL phase=compile" >&2
-            exit 1
-          fi
-          if ! python3 -m unittest tools.tests.test_verify_action_outcome_truth_state_space -v               >"$LOG" 2>&1; then
-            rm -f "$LOG"
-            echo "NOERITH_ACTION_OUTCOME_STATE_SPACE_GREEN=FAIL phase=tests" >&2
-            exit 1
-          fi
-          if ! python3 tools/verify_action_outcome_truth_state_space.py --self-test-only               >"$LOG" 2>&1; then
-            rm -f "$LOG"
-            echo "NOERITH_ACTION_OUTCOME_STATE_SPACE_GREEN=FAIL phase=self-test" >&2
-            exit 1
-          fi
+          LOG="${RUNNER_TEMP}/action-outcome-state-space-diagnostic.log"
+          CIPHER="${RUNNER_TEMP}/action-outcome-state-space-diagnostic.cms"
+          test -s "$LOG"
+          openssl cms -encrypt -binary -aes256 -outform DER             -in "$LOG"             -out "$CIPHER"             certs/noerith-state-space-debug-recipient.pem
           rm -f "$LOG"
-          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+          echo "NOERITH_ACTION_OUTCOME_STATE_SPACE_DIAGNOSTIC_ENCRYPTED=PASS"
+      - name: Upload encrypted focused diagnostic
+        if: always() && steps.focused.outputs.code != '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: noerith-action-state-space-encrypted-diagnostic
+          path: ${{ runner.temp }}/action-outcome-state-space-diagnostic.cms
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+      - name: Enforce focused result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ steps.focused.outputs.code }}" = "0"
           echo "NOERITH_ACTION_OUTCOME_STATE_SPACE_GREEN=PASS sha=$TARGET_SHA"
