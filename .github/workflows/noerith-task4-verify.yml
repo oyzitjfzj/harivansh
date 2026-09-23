@@ -1,4 +1,4 @@
-name: NOERITH action outcome-truth state-space full verification
+name: NOERITH action outcome-truth calibration runner RED verification
 
 on:
   push:
@@ -27,98 +27,38 @@ jobs:
           set -euo pipefail
           bash tests/test-noerith-relay-contract.sh
 
-  verify-full:
+  verify-red:
     needs: relay-self-test
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 10
     env:
-      TARGET_SHA: bc0ba8fa959893d669264a20bfe31423e20d687e
+      TARGET_SHA: 2e2570279fde90da67bc5ed8212829218bcdf7e6
     steps:
       - name: Checkout relay only
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-
       - name: Exact private NOERITH checkout
         shell: bash
         env:
           PRIVATE_READ_TOKEN: ${{ secrets.PRIVATE_READ_TOKEN }}
         run: bash scripts/checkout-noerith-private.sh
-
-      - name: Action outcome affected Python verification
-        id: python_gates
-        continue-on-error: true
+      - name: Observe intended calibration-runner missing-module RED
         shell: bash
         run: |
-          set +e
-          set -uo pipefail
+          set -euo pipefail
           ROOT="${RUNNER_TEMP}/noerith-private-source"
-          LOG="${RUNNER_TEMP}/action-outcome-full-python.log"
+          LOG="${RUNNER_TEMP}/action-outcome-calibration-runner-red.log"
           cd "$ROOT"
-          {
-            python3 -m py_compile               tools/grade_action_outcome_truth.py               tools/verify_action_outcome_truth_state_space.py               tools/tests/test_grade_action_outcome_truth.py               tools/tests/test_verify_action_outcome_truth_state_space.py
-            python3 -m unittest discover -s tools/tests -p 'test_*.py'
-            python3 tools/grade_action_outcome_truth.py --self-test-only
-            python3 tools/verify_action_outcome_truth_state_space.py --self-test-only
-          } >"$LOG" 2>&1
+          set +e
+          python3 -m unittest tools.tests.test_run_action_outcome_truth_protocol_calibration >"$LOG" 2>&1
           code=$?
-          echo "code=$code" >> "$GITHUB_OUTPUT"
-          if [[ "$code" -eq 0 ]]; then
+          set -e
+          if [[ "$code" -ne 0 ]]              && [[ ! -e tools/run_action_outcome_truth_protocol_calibration.py ]]              && grep -Fq "No module named 'tools.run_action_outcome_truth_protocol_calibration'" "$LOG"; then
             rm -f "$LOG"
-            echo "NOERITH_ACTION_OUTCOME_PYTHON=PASS"
+            echo "NOERITH_ACTION_OUTCOME_CALIBRATION_RUNNER_RED=PASS reason=missing-implementation-module"
             exit 0
           fi
-          echo "NOERITH_ACTION_OUTCOME_PYTHON=FAIL" >&2
+          rm -f "$LOG"
+          echo "NOERITH_ACTION_OUTCOME_CALIBRATION_RUNNER_RED=UNEXPECTED" >&2
           exit 1
-
-      - name: Existing S05 hermetic verification
-        id: hermetic
-        if: always() && steps.python_gates.outputs.code == '0'
-        continue-on-error: true
-        shell: bash
-        env:
-          NOERITH_ENCRYPTED_DIAGNOSTIC_DIR: ${{ runner.temp }}/noerith-action-full-diagnostic
-        run: |
-          set +e
-          set -uo pipefail
-          cd "$GITHUB_WORKSPACE"
-          bash scripts/run-noerith-verification.sh
-          code=$?
-          echo "code=$code" >> "$GITHUB_OUTPUT"
-          exit "$code"
-
-      - name: Encrypt failed diagnostics
-        if: always() && (steps.python_gates.outputs.code != '0' || steps.hermetic.outputs.code != '0')
-        shell: bash
-        run: |
-          set -euo pipefail
-          BUNDLE="${RUNNER_TEMP}/noerith-action-full-diagnostic"
-          mkdir -p "$BUNDLE"
-          if [[ -f "${RUNNER_TEMP}/action-outcome-full-python.log" ]]; then
-            mv "${RUNNER_TEMP}/action-outcome-full-python.log" "$BUNDLE/python.log"
-          fi
-          TAR="${RUNNER_TEMP}/noerith-action-full-diagnostic.tar"
-          CIPHER="${RUNNER_TEMP}/noerith-action-full-diagnostic.cms"
-          tar -C "$BUNDLE" -cf "$TAR" .
-          openssl cms -encrypt -binary -aes256 -outform DER             -in "$TAR"             -out "$CIPHER"             certs/noerith-state-space-debug-recipient.pem
-          rm -rf "$BUNDLE" "$TAR"
-          echo "NOERITH_ACTION_OUTCOME_FULL_DIAGNOSTIC_ENCRYPTED=PASS"
-
-      - name: Upload encrypted failed diagnostics
-        if: always() && (steps.python_gates.outputs.code != '0' || steps.hermetic.outputs.code != '0')
-        uses: actions/upload-artifact@v4
-        with:
-          name: noerith-action-state-space-full-encrypted-diagnostic
-          path: ${{ runner.temp }}/noerith-action-full-diagnostic.cms
-          if-no-files-found: error
-          retention-days: 1
-          compression-level: 0
-
-      - name: Enforce full verification
-        if: always()
-        shell: bash
-        run: |
-          set -euo pipefail
-          test "${{ steps.python_gates.outputs.code }}" = "0"
-          test "${{ steps.hermetic.outputs.code }}" = "0"
-          echo "NOERITH_ACTION_OUTCOME_STATE_SPACE_FULL=PASS sha=$TARGET_SHA"
