@@ -1,15 +1,15 @@
-name: NOERITH Task4 exact private-head verification
+name: NOERITH evidence-grader exact private-head verification
 
 on:
   push:
     branches:
-      - "build/noerith-task4-verify-20260923"
+      - "build/noerith-grader-qualification-verify-20260923"
 
 permissions:
   contents: read
 
 concurrency:
-  group: noerith-task4-verify-20260923
+  group: noerith-grader-qualification-verify-20260923
   cancel-in-progress: false
 
 jobs:
@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
-      TARGET_SHA: 40750356b8488c1fe44ebe4aaa89bc7b03ea3893
+      TARGET_SHA: 47734677901a9f921d2e3e52f35c5aadea049bae
     steps:
       - name: Checkout relay only
         uses: actions/checkout@v4
@@ -46,45 +46,45 @@ jobs:
           PRIVATE_READ_TOKEN: ${{ secrets.PRIVATE_READ_TOKEN }}
         run: bash scripts/checkout-noerith-private.sh
 
-      - name: Task4 candidate verification
+      - name: Evidence-grader qualification candidate verification
         id: candidate
         continue-on-error: true
         shell: bash
         env:
-          NOERITH_ENCRYPTED_DIAGNOSTIC_DIR: ${{ runner.temp }}/noerith-task4-diagnostic
+          NOERITH_ENCRYPTED_DIAGNOSTIC_DIR: ${{ runner.temp }}/noerith-grader-qualification-diagnostic
         run: bash scripts/run-noerith-verification.sh
 
-      - name: Encrypt failed Task4 diagnostics
+      - name: Encrypt failed qualification diagnostics
         if: steps.candidate.outcome == 'failure'
         shell: bash
         run: |
           set -euo pipefail
-          DIAG="${RUNNER_TEMP}/noerith-task4-diagnostic"
-          TAR="${RUNNER_TEMP}/noerith-task4-diagnostic.tar"
-          CIPHER="${RUNNER_TEMP}/noerith-task4-diagnostic.cms"
+          DIAG="${RUNNER_TEMP}/noerith-grader-qualification-diagnostic"
+          TAR="${RUNNER_TEMP}/noerith-grader-qualification-diagnostic.tar"
+          CIPHER="${RUNNER_TEMP}/noerith-grader-qualification-diagnostic.cms"
           test -d "$DIAG"
           tar -C "$DIAG" -cf "$TAR" .
           openssl cms -encrypt -binary -aes256 -outform DER \
             -in "$TAR" \
             -out "$CIPHER" \
             certs/noerith-task4-evidence-recipient.pem
-          sha256sum "$CIPHER" | sed 's# .*$##' | sed 's/^/NOERITH_TASK4_DIAGNOSTIC_SHA256=/'
+          sha256sum "$CIPHER" | sed 's# .*$##' | sed 's/^/NOERITH_GRADER_DIAGNOSTIC_SHA256=/'
           rm -rf "$DIAG" "$TAR"
 
-      - name: Upload encrypted failed Task4 diagnostics
+      - name: Upload encrypted failed qualification diagnostics
         if: steps.candidate.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:
-          name: noerith-task4-encrypted-diagnostic
-          path: ${{ runner.temp }}/noerith-task4-diagnostic.cms
+          name: noerith-grader-qualification-encrypted-diagnostic
+          path: ${{ runner.temp }}/noerith-grader-qualification-diagnostic.cms
           if-no-files-found: error
           retention-days: 1
           compression-level: 0
 
-      - name: Enforce Task4 candidate result
+      - name: Enforce evidence-grader qualification candidate result
         if: always()
         shell: bash
         run: |
           set -euo pipefail
           test "${{ steps.candidate.outcome }}" = "success"
-          echo "NOERITH_TASK4_BINDING=PASS"
+          echo "NOERITH_GRADER_QUALIFICATION_CANDIDATE=PASS"
