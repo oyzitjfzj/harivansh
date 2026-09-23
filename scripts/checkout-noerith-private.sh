@@ -2,7 +2,7 @@
 set -euo pipefail
 
 PRIVATE_REPOSITORY="oyzitjfzj/NOERITH"
-TARGET_SHA="0607af3e88f4e13b691e9ebbdb389d4e51e32991"
+TARGET_SHA="${TARGET_SHA:?TARGET_SHA required}"
 PRIVATE_READ_TOKEN="${PRIVATE_READ_TOKEN:-}"
 DEST="${RUNNER_TEMP:-/tmp}/noerith-private-source"
 ACCESS_LOG="${RUNNER_TEMP:-/tmp}/noerith-private-access.log"
