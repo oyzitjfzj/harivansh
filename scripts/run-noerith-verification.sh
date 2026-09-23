@@ -45,7 +45,7 @@ run_gate python-qualification-selftest python3 tools/verify_linux_oci_sandbox.py
 run_gate toolchain-install rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy --no-self-update
 export RUSTUP_TOOLCHAIN=1.98.1
 run_gate isolated-oci python3 tools/verify_isolated_std_crate.py crates/noerith-sandbox-oci
-run_gate capabilities-task4-red cargo test --manifest-path crates/noerith-capabilities/Cargo.toml --test linux_oci_environment_qualification
+run_gate capabilities-task4-targeted bash scripts/run-task4-targeted-test.sh
 
 final_sha="$(git rev-parse HEAD 2>/dev/null || true)"
 if [[ "$final_sha" != "$TARGET_SHA" ]]; then
