@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="${RUNNER_TEMP:-/tmp}/noerith-private-source"
 LOG_DIR="${RUNNER_TEMP:-/tmp}/noerith-private-verify-logs"
-TARGET_SHA="0607af3e88f4e13b691e9ebbdb389d4e51e32991"
+TARGET_SHA="${TARGET_SHA:?TARGET_SHA required}"
 DIAG_DIR="${NOERITH_ENCRYPTED_DIAGNOSTIC_DIR:-}"
 
 bash scripts/validate-noerith-sha.sh "$TARGET_SHA"
@@ -45,7 +45,7 @@ run_gate python-qualification-selftest python3 tools/verify_linux_oci_sandbox.py
 run_gate toolchain-install rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy --no-self-update
 export RUSTUP_TOOLCHAIN=1.98.1
 run_gate isolated-oci python3 tools/verify_isolated_std_crate.py crates/noerith-sandbox-oci
-run_gate capabilities-task4-targeted bash scripts/run-task4-targeted-test.sh
+run_gate capabilities-hermetic python3 tools/verify_isolated_pinned_crate_hermetic.py crates/noerith-capabilities
 
 final_sha="$(git rev-parse HEAD 2>/dev/null || true)"
 if [[ "$final_sha" != "$TARGET_SHA" ]]; then
