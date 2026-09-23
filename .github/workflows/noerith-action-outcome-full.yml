@@ -1,0 +1,48 @@
+name: NOERITH action outcome full verification
+
+on:
+  push:
+    branches:
+      - "build/noerith-grader-qualification-verify-20260923"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: noerith-action-outcome-full-20260923
+  cancel-in-progress: false
+
+jobs:
+  relay-self-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout relay only
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Validate full relay privacy contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tests/test-noerith-action-outcome-full-relay-contract.sh
+
+  verify:
+    needs: relay-self-test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      TARGET_SHA: 6f2c48d59ce462a455f743856a2c420d7ea5e20b
+    steps:
+      - name: Checkout relay only
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Exact private NOERITH checkout
+        shell: bash
+        env:
+          PRIVATE_READ_TOKEN: ${{ secrets.PRIVATE_READ_TOKEN }}
+        run: bash scripts/checkout-noerith-private.sh
+      - name: Full affected verification
+        shell: bash
+        run: bash scripts/run-noerith-action-outcome-full.sh
