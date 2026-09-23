@@ -39,7 +39,10 @@ run_gate python-tools-suite python3 -m unittest discover -s tools/tests -p 'test
 run_gate action-grader-self-test python3 tools/grade_action_outcome_truth.py --self-test-only
 
 echo "NOERITH_ACTION_OUTCOME_FULL_PHASE=s05-existing-gates"
-TARGET_SHA="$TARGET_SHA" RUNNER_TEMP="${RUNNER_TEMP:-/tmp}" bash "$GITHUB_WORKSPACE/scripts/run-noerith-verification.sh"
+(
+  cd "$GITHUB_WORKSPACE"
+  TARGET_SHA="$TARGET_SHA" RUNNER_TEMP="${RUNNER_TEMP:-/tmp}" bash scripts/run-noerith-verification.sh
+)
 
 final_sha="$(git rev-parse HEAD 2>/dev/null || true)"
 if [[ "$final_sha" != "$TARGET_SHA" ]]; then
