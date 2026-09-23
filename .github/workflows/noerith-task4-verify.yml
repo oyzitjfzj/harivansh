@@ -1,15 +1,15 @@
-name: NOERITH evidence-grader exact private-head verification
+name: NOERITH action outcome-truth RED verification
 
 on:
   push:
     branches:
-      - "build/noerith-grader-qualification-verify-20260923"
+      - "build/noerith-action-outcome-truth-verify-20260923"
 
 permissions:
   contents: read
 
 concurrency:
-  group: noerith-grader-qualification-verify-20260923
+  group: noerith-action-outcome-truth-verify-20260923
   cancel-in-progress: false
 
 jobs:
@@ -21,70 +21,46 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-
       - name: Validate relay privacy contract
         shell: bash
         run: |
           set -euo pipefail
           bash tests/test-noerith-relay-contract.sh
 
-  verify:
+  verify-red:
     needs: relay-self-test
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 10
     env:
-      TARGET_SHA: 9ec6aed2ecdbd371fcc61ca4b207cc43fd64b7c4
+      TARGET_SHA: 1397d0b8c30848290c0b83b4815551cbb11f660e
     steps:
       - name: Checkout relay only
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-
       - name: Exact private NOERITH checkout
         shell: bash
         env:
           PRIVATE_READ_TOKEN: ${{ secrets.PRIVATE_READ_TOKEN }}
         run: bash scripts/checkout-noerith-private.sh
-
-      - name: Evidence-grader qualification candidate verification
-        id: candidate
-        continue-on-error: true
-        shell: bash
-        env:
-          NOERITH_ENCRYPTED_DIAGNOSTIC_DIR: ${{ runner.temp }}/noerith-grader-qualification-diagnostic
-        run: bash scripts/run-noerith-verification.sh
-
-      - name: Encrypt failed qualification diagnostics
-        if: steps.candidate.outcome == 'failure'
+      - name: Observe intended missing-module RED
         shell: bash
         run: |
           set -euo pipefail
-          DIAG="${RUNNER_TEMP}/noerith-grader-qualification-diagnostic"
-          TAR="${RUNNER_TEMP}/noerith-grader-qualification-diagnostic.tar"
-          CIPHER="${RUNNER_TEMP}/noerith-grader-qualification-diagnostic.cms"
-          test -d "$DIAG"
-          tar -C "$DIAG" -cf "$TAR" .
-          openssl cms -encrypt -binary -aes256 -outform DER \
-            -in "$TAR" \
-            -out "$CIPHER" \
-            certs/noerith-task4-evidence-recipient.pem
-          sha256sum "$CIPHER" | sed 's# .*$##' | sed 's/^/NOERITH_GRADER_DIAGNOSTIC_SHA256=/'
-          rm -rf "$DIAG" "$TAR"
-
-      - name: Upload encrypted failed qualification diagnostics
-        if: steps.candidate.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: noerith-grader-qualification-encrypted-diagnostic
-          path: ${{ runner.temp }}/noerith-grader-qualification-diagnostic.cms
-          if-no-files-found: error
-          retention-days: 1
-          compression-level: 0
-
-      - name: Enforce evidence-grader qualification candidate result
-        if: always()
-        shell: bash
-        run: |
-          set -euo pipefail
-          test "${{ steps.candidate.outcome }}" = "success"
-          echo "NOERITH_GRADER_QUALIFICATION_CANDIDATE=PASS"
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          LOG="${RUNNER_TEMP}/action-outcome-red.log"
+          cd "$ROOT"
+          set +e
+          python3 -m unittest tools.tests.test_grade_action_outcome_truth >"$LOG" 2>&1
+          code=$?
+          set -e
+          if [[ "$code" -ne 0 ]] \
+             && [[ ! -e tools/grade_action_outcome_truth.py ]] \
+             && grep -Fq "No module named 'tools.grade_action_outcome_truth'" "$LOG"; then
+            rm -f "$LOG"
+            echo "NOERITH_ACTION_OUTCOME_TDD_RED=EXPECTED_MISSING_MODULE"
+            exit 0
+          fi
+          rm -f "$LOG"
+          echo "NOERITH_ACTION_OUTCOME_TDD_RED=UNEXPECTED" >&2
+          exit 1
