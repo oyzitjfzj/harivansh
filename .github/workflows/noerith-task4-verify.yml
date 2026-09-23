@@ -1,4 +1,4 @@
-name: NOERITH action outcome-truth state-space RED verification
+name: NOERITH action outcome-truth state-space GREEN verification
 
 on:
   push:
@@ -27,12 +27,12 @@ jobs:
           set -euo pipefail
           bash tests/test-noerith-relay-contract.sh
 
-  verify-red:
+  verify-green:
     needs: relay-self-test
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
-      TARGET_SHA: 1c94e179dcb528333ecf5efd96e265cd4b043fda
+      TARGET_SHA: 4a63191057b5dd5e2757c503293254a79735c489
     steps:
       - name: Checkout relay only
         uses: actions/checkout@v4
@@ -43,24 +43,28 @@ jobs:
         env:
           PRIVATE_READ_TOKEN: ${{ secrets.PRIVATE_READ_TOKEN }}
         run: bash scripts/checkout-noerith-private.sh
-      - name: Observe intended state-space missing-module RED
+      - name: Focused state-space verification
         shell: bash
         run: |
           set -euo pipefail
           ROOT="${RUNNER_TEMP}/noerith-private-source"
-          LOG="${RUNNER_TEMP}/action-outcome-state-space-red.log"
+          LOG="${RUNNER_TEMP}/action-outcome-state-space-green.log"
           cd "$ROOT"
-          set +e
-          python3 -m unittest tools.tests.test_verify_action_outcome_truth_state_space >"$LOG" 2>&1
-          code=$?
-          set -e
-          if [[ "$code" -ne 0 ]] \
-             && [[ ! -e tools/verify_action_outcome_truth_state_space.py ]] \
-             && grep -Fq "No module named 'tools.verify_action_outcome_truth_state_space'" "$LOG"; then
+          if ! python3 -m py_compile               tools/grade_action_outcome_truth.py               tools/verify_action_outcome_truth_state_space.py               tools/tests/test_verify_action_outcome_truth_state_space.py               >"$LOG" 2>&1; then
             rm -f "$LOG"
-            echo "NOERITH_ACTION_OUTCOME_STATE_SPACE_RED=PASS reason=missing-implementation-module"
-            exit 0
+            echo "NOERITH_ACTION_OUTCOME_STATE_SPACE_GREEN=FAIL phase=compile" >&2
+            exit 1
+          fi
+          if ! python3 -m unittest tools.tests.test_verify_action_outcome_truth_state_space -v               >"$LOG" 2>&1; then
+            rm -f "$LOG"
+            echo "NOERITH_ACTION_OUTCOME_STATE_SPACE_GREEN=FAIL phase=tests" >&2
+            exit 1
+          fi
+          if ! python3 tools/verify_action_outcome_truth_state_space.py --self-test-only               >"$LOG" 2>&1; then
+            rm -f "$LOG"
+            echo "NOERITH_ACTION_OUTCOME_STATE_SPACE_GREEN=FAIL phase=self-test" >&2
+            exit 1
           fi
           rm -f "$LOG"
-          echo "NOERITH_ACTION_OUTCOME_STATE_SPACE_RED=UNEXPECTED" >&2
-          exit 1
+          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+          echo "NOERITH_ACTION_OUTCOME_STATE_SPACE_GREEN=PASS sha=$TARGET_SHA"
