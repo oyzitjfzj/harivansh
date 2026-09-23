@@ -83,33 +83,33 @@ jobs:
 
           if [[ "$pull_status" -eq 0 && "$qual_status" -ne 0 ]]; then
             NOERITH_ROOT="$ROOT" NOERITH_IMAGE="$QUAL_IMAGE" NOERITH_DIAG="$BUNDLE/pid-pressure-diagnostic.json" python3 - <<'PY' >/dev/null 2>&1
-import importlib.util
-import json
-import os
-from pathlib import Path
-import tempfile
-
-root = Path(os.environ["NOERITH_ROOT"])
-spec = importlib.util.spec_from_file_location(
-    "noerith_oci_qualification",
-    root / "tools" / "verify_linux_oci_sandbox.py",
-)
-module = importlib.util.module_from_spec(spec)
-assert spec.loader is not None
-spec.loader.exec_module(module)
-with tempfile.TemporaryDirectory(prefix="noerith-pid-diag-") as td:
-    harness = module._compile_runtime_harness(root, Path(td))
-    record = module._run_harness(
-        harness,
-        os.environ["NOERITH_IMAGE"],
-        module._pid_pressure_script(),
-        timeout=120,
-    )
-Path(os.environ["NOERITH_DIAG"]).write_text(
-    json.dumps(record, sort_keys=True, indent=2) + "\n",
-    encoding="utf-8",
-)
-PY
+          import importlib.util
+          import json
+          import os
+          from pathlib import Path
+          import tempfile
+          
+          root = Path(os.environ["NOERITH_ROOT"])
+          spec = importlib.util.spec_from_file_location(
+              "noerith_oci_qualification",
+              root / "tools" / "verify_linux_oci_sandbox.py",
+          )
+          module = importlib.util.module_from_spec(spec)
+          assert spec.loader is not None
+          spec.loader.exec_module(module)
+          with tempfile.TemporaryDirectory(prefix="noerith-pid-diag-") as td:
+              harness = module._compile_runtime_harness(root, Path(td))
+              record = module._run_harness(
+                  harness,
+                  os.environ["NOERITH_IMAGE"],
+                  module._pid_pressure_script(),
+                  timeout=120,
+              )
+          Path(os.environ["NOERITH_DIAG"]).write_text(
+              json.dumps(record, sort_keys=True, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
           fi
 
           cp "$PULL_LOG" "$BUNDLE/pull.log" 2>/dev/null || true
