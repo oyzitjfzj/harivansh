@@ -11,6 +11,8 @@ grep -Fq 'rev-parse HEAD' scripts/checkout-noerith-private.sh
 grep -Fq 'python3 tools/verify_linux_oci_sandbox.py --self-test-only' scripts/run-noerith-verification.sh
 grep -Fq 'python3 tools/verify_isolated_std_crate.py crates/noerith-sandbox-oci' scripts/run-noerith-verification.sh
 grep -Fq 'rustup toolchain install 1.98.1' scripts/run-noerith-verification.sh
+grep -Fq 'TARGET_SHA="${TARGET_SHA:?TARGET_SHA required}"' scripts/checkout-noerith-private.sh
+grep -Fq 'TARGET_SHA="${TARGET_SHA:?TARGET_SHA required}"' scripts/run-noerith-verification.sh
 
 workflow=".github/workflows/noerith-private-verify.yml"
 grep -Fq 'openssl cms -encrypt -binary -aes256' "$workflow"
