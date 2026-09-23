@@ -45,7 +45,15 @@ run_gate python-qualification-selftest python3 tools/verify_linux_oci_sandbox.py
 run_gate toolchain-install rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy --no-self-update
 export RUSTUP_TOOLCHAIN=1.98.1
 run_gate isolated-oci python3 tools/verify_isolated_std_crate.py crates/noerith-sandbox-oci
-run_gate evaluation-corpus-focused cargo test -p noerith-capabilities --test evaluation_corpus --locked -- --nocapture
+run_gate evaluation-corpus-focused bash -c '
+  set -euo pipefail
+  temp_dir="$(mktemp -d)"
+  trap '"'"'rm -rf "$temp_dir"'"'"' EXIT
+  cp -R crates/noerith-capabilities "$temp_dir/candidate"
+  cd "$temp_dir/candidate"
+  cargo generate-lockfile
+  CARGO_NET_OFFLINE=false cargo test --locked --test evaluation_corpus -- --nocapture
+'
 
 final_sha="$(git rev-parse HEAD 2>/dev/null || true)"
 if [[ "$final_sha" != "$TARGET_SHA" ]]; then
