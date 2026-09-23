@@ -49,6 +49,8 @@ jobs:
 
       - name: Current-head verification
         shell: bash
+        env:
+          NOERITH_ENCRYPTED_DIAGNOSTIC_DIR: ${{ runner.temp }}/noerith-s05-bundle
         run: bash scripts/run-noerith-verification.sh
 
       - name: Real Docker qualification

@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT="${RUNNER_TEMP:-/tmp}/noerith-private-source"
 LOG_DIR="${RUNNER_TEMP:-/tmp}/noerith-private-verify-logs"
 TARGET_SHA="${TARGET_SHA:-}"
+DIAG_DIR="${NOERITH_ENCRYPTED_DIAGNOSTIC_DIR:-}"
 
 bash scripts/validate-noerith-sha.sh "$TARGET_SHA"
 
@@ -28,6 +29,10 @@ run_gate() {
   local log="$LOG_DIR/${name}.log"
   echo "NOERITH_VERIFY_PHASE=$name"
   if ! "$@" >"$log" 2>&1; then
+    if [[ -n "$DIAG_DIR" ]]; then
+      mkdir -p "$DIAG_DIR"
+      cp "$log" "$DIAG_DIR/current-head-${name}.log"
+    fi
     echo "NOERITH_VERIFY_RESULT=FAIL phase=$name" >&2
     exit 72
   fi
