@@ -1,4 +1,4 @@
-name: NOERITH action outcome-truth calibration runner RED verification
+name: NOERITH action outcome-truth calibration runner GREEN verification
 
 on:
   push:
@@ -27,12 +27,12 @@ jobs:
           set -euo pipefail
           bash tests/test-noerith-relay-contract.sh
 
-  verify-red:
+  verify-green:
     needs: relay-self-test
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
-      TARGET_SHA: 2e2570279fde90da67bc5ed8212829218bcdf7e6
+      TARGET_SHA: 30b965c97575dde5581bf115420910c18395e2a2
     steps:
       - name: Checkout relay only
         uses: actions/checkout@v4
@@ -43,22 +43,28 @@ jobs:
         env:
           PRIVATE_READ_TOKEN: ${{ secrets.PRIVATE_READ_TOKEN }}
         run: bash scripts/checkout-noerith-private.sh
-      - name: Observe intended calibration-runner missing-module RED
+      - name: Focused calibration runner verification
         shell: bash
         run: |
           set -euo pipefail
           ROOT="${RUNNER_TEMP}/noerith-private-source"
-          LOG="${RUNNER_TEMP}/action-outcome-calibration-runner-red.log"
+          LOG="${RUNNER_TEMP}/action-outcome-calibration-runner-green.log"
           cd "$ROOT"
-          set +e
-          python3 -m unittest tools.tests.test_run_action_outcome_truth_protocol_calibration >"$LOG" 2>&1
-          code=$?
-          set -e
-          if [[ "$code" -ne 0 ]]              && [[ ! -e tools/run_action_outcome_truth_protocol_calibration.py ]]              && grep -Fq "No module named 'tools.run_action_outcome_truth_protocol_calibration'" "$LOG"; then
+          if ! python3 -m py_compile               tools/grade_action_outcome_truth.py               tools/verify_grader_calibration.py               tools/run_action_outcome_truth_protocol_calibration.py               tools/tests/test_run_action_outcome_truth_protocol_calibration.py               >"$LOG" 2>&1; then
             rm -f "$LOG"
-            echo "NOERITH_ACTION_OUTCOME_CALIBRATION_RUNNER_RED=PASS reason=missing-implementation-module"
-            exit 0
+            echo "NOERITH_ACTION_OUTCOME_CALIBRATION_RUNNER_GREEN=FAIL phase=compile" >&2
+            exit 1
+          fi
+          if ! python3 -m unittest tools.tests.test_run_action_outcome_truth_protocol_calibration -v               >"$LOG" 2>&1; then
+            rm -f "$LOG"
+            echo "NOERITH_ACTION_OUTCOME_CALIBRATION_RUNNER_GREEN=FAIL phase=tests" >&2
+            exit 1
+          fi
+          if ! python3 tools/run_action_outcome_truth_protocol_calibration.py --self-test-only               >"$LOG" 2>&1; then
+            rm -f "$LOG"
+            echo "NOERITH_ACTION_OUTCOME_CALIBRATION_RUNNER_GREEN=FAIL phase=self-test" >&2
+            exit 1
           fi
           rm -f "$LOG"
-          echo "NOERITH_ACTION_OUTCOME_CALIBRATION_RUNNER_RED=UNEXPECTED" >&2
-          exit 1
+          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+          echo "NOERITH_ACTION_OUTCOME_CALIBRATION_RUNNER_GREEN=PASS sha=$TARGET_SHA"
