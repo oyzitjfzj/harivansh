@@ -18,6 +18,7 @@ grep -Fq 'certs/noerith-s05-evidence-recipient.pem' "$workflow"
 grep -Fq 'uses: actions/upload-artifact@v4' "$workflow"
 grep -Fq 'path: ${{ runner.temp }}/noerith-s05-evidence.cms' "$workflow"
 grep -Fq 'retention-days: 1' "$workflow"
+grep -Fq 'set +e' "$workflow"
 if grep -E '^[[:space:]]*path:.*(noerith-s05-bundle|noerith-s05-evidence\.tar|qualification\.log|pull\.log)' "$workflow"; then
   echo "NOERITH_RELAY_PRIVACY_CONTRACT_FAILED" >&2
   exit 1
