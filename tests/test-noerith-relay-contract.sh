@@ -12,6 +12,17 @@ grep -Fq 'python3 tools/verify_linux_oci_sandbox.py --self-test-only' scripts/ru
 grep -Fq 'python3 tools/verify_isolated_std_crate.py crates/noerith-sandbox-oci' scripts/run-noerith-verification.sh
 grep -Fq 'rustup toolchain install 1.98.1' scripts/run-noerith-verification.sh
 
+workflow=".github/workflows/noerith-private-verify.yml"
+grep -Fq 'openssl cms -encrypt -binary -aes256' "$workflow"
+grep -Fq 'certs/noerith-s05-evidence-recipient.pem' "$workflow"
+grep -Fq 'uses: actions/upload-artifact@v4' "$workflow"
+grep -Fq 'path: ${{ runner.temp }}/noerith-s05-evidence.cms' "$workflow"
+grep -Fq 'retention-days: 1' "$workflow"
+if grep -E '^[[:space:]]*path:.*(noerith-s05-bundle|noerith-s05-evidence\.tar|qualification\.log|pull\.log)' "$workflow"; then
+  echo "NOERITH_RELAY_PRIVACY_CONTRACT_FAILED" >&2
+  exit 1
+fi
+
 if grep -R -n -E 'set -x|cat .*\.log|tail .*\.log|tee .*\.log|actions/upload-artifact|gh .*upload' scripts; then
   echo "NOERITH_RELAY_PRIVACY_CONTRACT_FAILED" >&2
   exit 1

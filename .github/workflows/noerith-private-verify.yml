@@ -31,9 +31,10 @@ jobs:
   verify:
     needs: relay-self-test
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 30
     env:
-      TARGET_SHA: 9f245a543028b71907710d8da47cf0e430b036d1
+      TARGET_SHA: a2c0ff21aa31bf34be00956f2e43391e7233ada7
+      QUAL_IMAGE: rust@sha256:ff521445a372125ed4f76e1453a1f8098f2d05332d1601d30db1c1f62757e730
     steps:
       - name: Checkout relay only
         uses: actions/checkout@v4
@@ -49,3 +50,75 @@ jobs:
       - name: Current-head verification
         shell: bash
         run: bash scripts/run-noerith-verification.sh
+
+      - name: Real Docker qualification
+        id: real_qualification
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -uo pipefail
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          BUNDLE="${RUNNER_TEMP}/noerith-s05-bundle"
+          PULL_LOG="${RUNNER_TEMP}/noerith-s05-pull.log"
+          QUAL_LOG="${RUNNER_TEMP}/noerith-s05-qualification.log"
+          rm -rf "$BUNDLE"
+          mkdir -p "$BUNDLE"
+
+          docker pull "$QUAL_IMAGE" >"$PULL_LOG" 2>&1
+          pull_status=$?
+          qual_status=99
+          if [[ "$pull_status" -eq 0 ]]; then
+            cd "$ROOT"
+            python3 tools/verify_linux_oci_sandbox.py \
+              --real-run \
+              --image "$QUAL_IMAGE" \
+              --output-dir "$BUNDLE/raw" \
+              --expected-source-revision "$TARGET_SHA" \
+              >"$QUAL_LOG" 2>&1
+            qual_status=$?
+          fi
+
+          cp "$PULL_LOG" "$BUNDLE/pull.log" 2>/dev/null || true
+          cp "$QUAL_LOG" "$BUNDLE/qualification.log" 2>/dev/null || true
+          printf '{"pull_status":%s,"qualification_status":%s}\n' "$pull_status" "$qual_status" >"$BUNDLE/relay-status.json"
+
+          if [[ "$pull_status" -ne 0 || "$qual_status" -ne 0 ]]; then
+            echo "NOERITH_REAL_QUALIFICATION=FAIL"
+            exit 1
+          fi
+          echo "NOERITH_REAL_QUALIFICATION=PASS"
+
+      - name: Encrypt qualification evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUNDLE="${RUNNER_TEMP}/noerith-s05-bundle"
+          TAR="${RUNNER_TEMP}/noerith-s05-evidence.tar"
+          CIPHER="${RUNNER_TEMP}/noerith-s05-evidence.cms"
+          test -d "$BUNDLE"
+          tar -C "$BUNDLE" -cf "$TAR" .
+          openssl cms -encrypt -binary -aes256 -outform DER \
+            -in "$TAR" \
+            -out "$CIPHER" \
+            certs/noerith-s05-evidence-recipient.pem
+          sha256sum "$CIPHER" | sed 's# .*$##' | sed 's/^/NOERITH_ENCRYPTED_EVIDENCE_SHA256=/'
+          rm -rf "$BUNDLE" "$TAR"
+
+      - name: Upload encrypted qualification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: noerith-s05-encrypted-evidence
+          path: ${{ runner.temp }}/noerith-s05-evidence.cms
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      - name: Enforce real qualification result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ steps.real_qualification.outcome }}" = "success"
+          echo "NOERITH_TASK3_REAL_RUNTIME=PASS"
