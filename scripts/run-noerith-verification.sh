@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="${RUNNER_TEMP:-/tmp}/noerith-private-source"
 LOG_DIR="${RUNNER_TEMP:-/tmp}/noerith-private-verify-logs"
-TARGET_SHA="9ee306dff0edc89fdae7c7aa4cbcfdee649fb836"
+TARGET_SHA="${TARGET_SHA:?TARGET_SHA required}"
 DIAG_DIR="${NOERITH_ENCRYPTED_DIAGNOSTIC_DIR:-}"
 
 bash scripts/validate-noerith-sha.sh "$TARGET_SHA"
