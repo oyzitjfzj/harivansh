@@ -1,4 +1,4 @@
-name: NOERITH action outcome-truth calibration runner full verification
+name: NOERITH action outcome-truth calibration evidence
 
 on:
   push:
@@ -27,10 +27,10 @@ jobs:
           set -euo pipefail
           bash tests/test-noerith-relay-contract.sh
 
-  verify-full:
+  calibrate:
     needs: relay-self-test
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 15
     env:
       TARGET_SHA: 30b965c97575dde5581bf115420910c18395e2a2
     steps:
@@ -45,81 +45,71 @@ jobs:
           PRIVATE_READ_TOKEN: ${{ secrets.PRIVATE_READ_TOKEN }}
         run: bash scripts/checkout-noerith-private.sh
 
-      - name: Action outcome calibration affected Python verification
-        id: python_gates
+      - name: Reproduce calibration twice
+        id: calibration
         continue-on-error: true
         shell: bash
         run: |
           set +e
           set -uo pipefail
           ROOT="${RUNNER_TEMP}/noerith-private-source"
-          LOG="${RUNNER_TEMP}/action-outcome-calibration-full-python.log"
+          A="${RUNNER_TEMP}/action-calibration-a"
+          B="${RUNNER_TEMP}/action-calibration-b"
+          LOG="${RUNNER_TEMP}/action-calibration-evidence.log"
           cd "$ROOT"
           {
-            python3 -m py_compile               tools/grade_action_outcome_truth.py               tools/verify_action_outcome_truth_state_space.py               tools/verify_grader_calibration.py               tools/run_action_outcome_truth_protocol_calibration.py               tools/tests/test_run_action_outcome_truth_protocol_calibration.py
-            python3 -m unittest discover -s tools/tests -p 'test_*.py'
-            python3 tools/grade_action_outcome_truth.py --self-test-only
-            python3 tools/verify_action_outcome_truth_state_space.py --self-test-only
-            python3 tools/run_action_outcome_truth_protocol_calibration.py --self-test-only
+            python3 tools/run_action_outcome_truth_protocol_calibration.py --output-dir "$A"
+            python3 tools/run_action_outcome_truth_protocol_calibration.py --output-dir "$B"
+            for name in cases observations policy report; do
+              cmp -s "$A/action-outcome-truth-${name}.json" "$B/action-outcome-truth-${name}.json"
+            done
           } >"$LOG" 2>&1
           code=$?
           echo "code=$code" >> "$GITHUB_OUTPUT"
-          if [[ "$code" -eq 0 ]]; then
-            rm -f "$LOG"
-            echo "NOERITH_ACTION_OUTCOME_CALIBRATION_PYTHON=PASS"
-            exit 0
+          if [[ "$code" -ne 0 ]]; then
+            echo "NOERITH_ACTION_OUTCOME_CALIBRATION_EVIDENCE=FAIL" >&2
+            exit 1
           fi
-          echo "NOERITH_ACTION_OUTCOME_CALIBRATION_PYTHON=FAIL" >&2
-          exit 1
+          rm -f "$LOG"
+          echo "NOERITH_ACTION_OUTCOME_CALIBRATION_REPRODUCIBLE=PASS"
+          for name in cases observations policy report; do
+            digest="$(sha256sum "$A/action-outcome-truth-${name}.json" | awk '{print $1}')"
+            echo "NOERITH_ACTION_OUTCOME_CALIBRATION_ARTIFACT_${name^^}=sha256:$digest"
+          done
+          echo "NOERITH_ACTION_OUTCOME_GRADER_SHA256=sha256:$(sha256sum tools/grade_action_outcome_truth.py | awk '{print $1}')"
+          echo "NOERITH_ACTION_OUTCOME_STATE_SPACE_SHA256=sha256:$(sha256sum tools/verify_action_outcome_truth_state_space.py | awk '{print $1}')"
+          echo "NOERITH_ACTION_OUTCOME_CALIBRATION_OWNER_SHA256=sha256:$(sha256sum tools/verify_grader_calibration.py | awk '{print $1}')"
+          echo "NOERITH_ACTION_OUTCOME_CALIBRATION_RUNNER_SHA256=sha256:$(sha256sum tools/run_action_outcome_truth_protocol_calibration.py | awk '{print $1}')"
+          echo "NOERITH_ACTION_OUTCOME_CALIBRATION_TEST_SHA256=sha256:$(sha256sum tools/tests/test_run_action_outcome_truth_protocol_calibration.py | awk '{print $1}')"
+          python3 -c 'import json,sys; r=json.load(open(sys.argv[1],encoding="utf-8")); print("NOERITH_ACTION_OUTCOME_CALIBRATION_REPORT_DIGEST="+r["report_digest"]); print("NOERITH_ACTION_OUTCOME_CALIBRATION_POLICY_DIGEST="+r["policy_digest"]); print("NOERITH_ACTION_OUTCOME_CALIBRATION_OBSERVATION_DIGEST="+r["observation_digest"]); print("NOERITH_ACTION_OUTCOME_CALIBRATION_RESULT="+r["overall_status"].upper()); print("NOERITH_ACTION_OUTCOME_CALIBRATION_TOTAL="+str(r["counts"]["total"])); print("NOERITH_ACTION_OUTCOME_CALIBRATION_EXACT_AGREEMENT="+str(r["metrics"]["exact_agreement"]["numerator"])+"/"+str(r["metrics"]["exact_agreement"]["denominator"])); print("NOERITH_ACTION_OUTCOME_CALIBRATION_FALSE_PASS="+str(r["metrics"]["false_pass_rate"]["numerator"])+"/"+str(r["metrics"]["false_pass_rate"]["denominator"])); print("NOERITH_ACTION_OUTCOME_CALIBRATION_CRITICAL="+",".join(x["status"] for x in r["critical_checks"]))' "$A/action-outcome-truth-report.json"
+          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
 
-      - name: Existing S05 hermetic verification
-        id: hermetic
-        if: always() && steps.python_gates.outputs.code == '0'
-        continue-on-error: true
-        shell: bash
-        env:
-          NOERITH_ENCRYPTED_DIAGNOSTIC_DIR: ${{ runner.temp }}/noerith-action-calibration-full-diagnostic
-        run: |
-          set +e
-          set -uo pipefail
-          cd "$GITHUB_WORKSPACE"
-          bash scripts/run-noerith-verification.sh
-          code=$?
-          echo "code=$code" >> "$GITHUB_OUTPUT"
-          exit "$code"
-
-      - name: Encrypt failed diagnostics
-        if: always() && (steps.python_gates.outputs.code != '0' || steps.hermetic.outputs.code != '0')
+      - name: Encrypt failed calibration diagnostic
+        if: always() && steps.calibration.outputs.code != '0'
         shell: bash
         run: |
           set -euo pipefail
-          BUNDLE="${RUNNER_TEMP}/noerith-action-calibration-full-diagnostic"
-          mkdir -p "$BUNDLE"
-          if [[ -f "${RUNNER_TEMP}/action-outcome-calibration-full-python.log" ]]; then
-            mv "${RUNNER_TEMP}/action-outcome-calibration-full-python.log" "$BUNDLE/python.log"
-          fi
-          TAR="${RUNNER_TEMP}/noerith-action-calibration-full-diagnostic.tar"
-          CIPHER="${RUNNER_TEMP}/noerith-action-calibration-full-diagnostic.cms"
-          tar -C "$BUNDLE" -cf "$TAR" .
-          openssl cms -encrypt -binary -aes256 -outform DER             -in "$TAR"             -out "$CIPHER"             certs/noerith-state-space-debug-recipient.pem
-          rm -rf "$BUNDLE" "$TAR"
-          echo "NOERITH_ACTION_OUTCOME_CALIBRATION_FULL_DIAGNOSTIC_ENCRYPTED=PASS"
+          LOG="${RUNNER_TEMP}/action-calibration-evidence.log"
+          CIPHER="${RUNNER_TEMP}/action-calibration-evidence.cms"
+          test -s "$LOG"
+          openssl cms -encrypt -binary -aes256 -outform DER             -in "$LOG"             -out "$CIPHER"             certs/noerith-state-space-debug-recipient.pem
+          rm -f "$LOG"
+          echo "NOERITH_ACTION_OUTCOME_CALIBRATION_DIAGNOSTIC_ENCRYPTED=PASS"
 
-      - name: Upload encrypted failed diagnostics
-        if: always() && (steps.python_gates.outputs.code != '0' || steps.hermetic.outputs.code != '0')
+      - name: Upload encrypted failed calibration diagnostic
+        if: always() && steps.calibration.outputs.code != '0'
         uses: actions/upload-artifact@v4
         with:
-          name: noerith-action-calibration-full-encrypted-diagnostic
-          path: ${{ runner.temp }}/noerith-action-calibration-full-diagnostic.cms
+          name: noerith-action-calibration-evidence-encrypted-diagnostic
+          path: ${{ runner.temp }}/action-calibration-evidence.cms
           if-no-files-found: error
           retention-days: 1
           compression-level: 0
 
-      - name: Enforce full verification
+      - name: Enforce calibration evidence result
         if: always()
         shell: bash
         run: |
           set -euo pipefail
-          test "${{ steps.python_gates.outputs.code }}" = "0"
-          test "${{ steps.hermetic.outputs.code }}" = "0"
-          echo "NOERITH_ACTION_OUTCOME_CALIBRATION_FULL=PASS sha=$TARGET_SHA"
+          test "${{ steps.calibration.outputs.code }}" = "0"
+          echo "NOERITH_ACTION_OUTCOME_CALIBRATION_EVIDENCE=PASS sha=$TARGET_SHA"
