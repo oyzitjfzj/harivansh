@@ -1,4 +1,4 @@
-name: NOERITH action outcome-truth calibration runner GREEN verification
+name: NOERITH action outcome-truth calibration runner full verification
 
 on:
   push:
@@ -27,10 +27,10 @@ jobs:
           set -euo pipefail
           bash tests/test-noerith-relay-contract.sh
 
-  verify-green:
+  verify-full:
     needs: relay-self-test
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
     env:
       TARGET_SHA: 30b965c97575dde5581bf115420910c18395e2a2
     steps:
@@ -38,33 +38,88 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+
       - name: Exact private NOERITH checkout
         shell: bash
         env:
           PRIVATE_READ_TOKEN: ${{ secrets.PRIVATE_READ_TOKEN }}
         run: bash scripts/checkout-noerith-private.sh
-      - name: Focused calibration runner verification
+
+      - name: Action outcome calibration affected Python verification
+        id: python_gates
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          set -uo pipefail
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          LOG="${RUNNER_TEMP}/action-outcome-calibration-full-python.log"
+          cd "$ROOT"
+          {
+            python3 -m py_compile               tools/grade_action_outcome_truth.py               tools/verify_action_outcome_truth_state_space.py               tools/verify_grader_calibration.py               tools/run_action_outcome_truth_protocol_calibration.py               tools/tests/test_run_action_outcome_truth_protocol_calibration.py
+            python3 -m unittest discover -s tools/tests -p 'test_*.py'
+            python3 tools/grade_action_outcome_truth.py --self-test-only
+            python3 tools/verify_action_outcome_truth_state_space.py --self-test-only
+            python3 tools/run_action_outcome_truth_protocol_calibration.py --self-test-only
+          } >"$LOG" 2>&1
+          code=$?
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          if [[ "$code" -eq 0 ]]; then
+            rm -f "$LOG"
+            echo "NOERITH_ACTION_OUTCOME_CALIBRATION_PYTHON=PASS"
+            exit 0
+          fi
+          echo "NOERITH_ACTION_OUTCOME_CALIBRATION_PYTHON=FAIL" >&2
+          exit 1
+
+      - name: Existing S05 hermetic verification
+        id: hermetic
+        if: always() && steps.python_gates.outputs.code == '0'
+        continue-on-error: true
+        shell: bash
+        env:
+          NOERITH_ENCRYPTED_DIAGNOSTIC_DIR: ${{ runner.temp }}/noerith-action-calibration-full-diagnostic
+        run: |
+          set +e
+          set -uo pipefail
+          cd "$GITHUB_WORKSPACE"
+          bash scripts/run-noerith-verification.sh
+          code=$?
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          exit "$code"
+
+      - name: Encrypt failed diagnostics
+        if: always() && (steps.python_gates.outputs.code != '0' || steps.hermetic.outputs.code != '0')
         shell: bash
         run: |
           set -euo pipefail
-          ROOT="${RUNNER_TEMP}/noerith-private-source"
-          LOG="${RUNNER_TEMP}/action-outcome-calibration-runner-green.log"
-          cd "$ROOT"
-          if ! python3 -m py_compile               tools/grade_action_outcome_truth.py               tools/verify_grader_calibration.py               tools/run_action_outcome_truth_protocol_calibration.py               tools/tests/test_run_action_outcome_truth_protocol_calibration.py               >"$LOG" 2>&1; then
-            rm -f "$LOG"
-            echo "NOERITH_ACTION_OUTCOME_CALIBRATION_RUNNER_GREEN=FAIL phase=compile" >&2
-            exit 1
+          BUNDLE="${RUNNER_TEMP}/noerith-action-calibration-full-diagnostic"
+          mkdir -p "$BUNDLE"
+          if [[ -f "${RUNNER_TEMP}/action-outcome-calibration-full-python.log" ]]; then
+            mv "${RUNNER_TEMP}/action-outcome-calibration-full-python.log" "$BUNDLE/python.log"
           fi
-          if ! python3 -m unittest tools.tests.test_run_action_outcome_truth_protocol_calibration -v               >"$LOG" 2>&1; then
-            rm -f "$LOG"
-            echo "NOERITH_ACTION_OUTCOME_CALIBRATION_RUNNER_GREEN=FAIL phase=tests" >&2
-            exit 1
-          fi
-          if ! python3 tools/run_action_outcome_truth_protocol_calibration.py --self-test-only               >"$LOG" 2>&1; then
-            rm -f "$LOG"
-            echo "NOERITH_ACTION_OUTCOME_CALIBRATION_RUNNER_GREEN=FAIL phase=self-test" >&2
-            exit 1
-          fi
-          rm -f "$LOG"
-          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
-          echo "NOERITH_ACTION_OUTCOME_CALIBRATION_RUNNER_GREEN=PASS sha=$TARGET_SHA"
+          TAR="${RUNNER_TEMP}/noerith-action-calibration-full-diagnostic.tar"
+          CIPHER="${RUNNER_TEMP}/noerith-action-calibration-full-diagnostic.cms"
+          tar -C "$BUNDLE" -cf "$TAR" .
+          openssl cms -encrypt -binary -aes256 -outform DER             -in "$TAR"             -out "$CIPHER"             certs/noerith-state-space-debug-recipient.pem
+          rm -rf "$BUNDLE" "$TAR"
+          echo "NOERITH_ACTION_OUTCOME_CALIBRATION_FULL_DIAGNOSTIC_ENCRYPTED=PASS"
+
+      - name: Upload encrypted failed diagnostics
+        if: always() && (steps.python_gates.outputs.code != '0' || steps.hermetic.outputs.code != '0')
+        uses: actions/upload-artifact@v4
+        with:
+          name: noerith-action-calibration-full-encrypted-diagnostic
+          path: ${{ runner.temp }}/noerith-action-calibration-full-diagnostic.cms
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      - name: Enforce full verification
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ steps.python_gates.outputs.code }}" = "0"
+          test "${{ steps.hermetic.outputs.code }}" = "0"
+          echo "NOERITH_ACTION_OUTCOME_CALIBRATION_FULL=PASS sha=$TARGET_SHA"
