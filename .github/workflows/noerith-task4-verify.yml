@@ -1,4 +1,4 @@
-name: NOERITH action outcome-truth RED verification
+name: NOERITH action outcome-truth state-space RED verification
 
 on:
   push:
@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
-      TARGET_SHA: 1397d0b8c30848290c0b83b4815551cbb11f660e
+      TARGET_SHA: 1c94e179dcb528333ecf5efd96e265cd4b043fda
     steps:
       - name: Checkout relay only
         uses: actions/checkout@v4
@@ -43,24 +43,24 @@ jobs:
         env:
           PRIVATE_READ_TOKEN: ${{ secrets.PRIVATE_READ_TOKEN }}
         run: bash scripts/checkout-noerith-private.sh
-      - name: Observe intended missing-module RED
+      - name: Observe intended state-space missing-module RED
         shell: bash
         run: |
           set -euo pipefail
           ROOT="${RUNNER_TEMP}/noerith-private-source"
-          LOG="${RUNNER_TEMP}/action-outcome-red.log"
+          LOG="${RUNNER_TEMP}/action-outcome-state-space-red.log"
           cd "$ROOT"
           set +e
-          python3 -m unittest tools.tests.test_grade_action_outcome_truth >"$LOG" 2>&1
+          python3 -m unittest tools.tests.test_verify_action_outcome_truth_state_space >"$LOG" 2>&1
           code=$?
           set -e
           if [[ "$code" -ne 0 ]] \
-             && [[ ! -e tools/grade_action_outcome_truth.py ]] \
-             && grep -Fq "No module named 'tools.grade_action_outcome_truth'" "$LOG"; then
+             && [[ ! -e tools/verify_action_outcome_truth_state_space.py ]] \
+             && grep -Fq "No module named 'tools.verify_action_outcome_truth_state_space'" "$LOG"; then
             rm -f "$LOG"
-            echo "NOERITH_ACTION_OUTCOME_TDD_RED=EXPECTED_MISSING_MODULE"
+            echo "NOERITH_ACTION_OUTCOME_STATE_SPACE_RED=PASS reason=missing-implementation-module"
             exit 0
           fi
           rm -f "$LOG"
-          echo "NOERITH_ACTION_OUTCOME_TDD_RED=UNEXPECTED" >&2
+          echo "NOERITH_ACTION_OUTCOME_STATE_SPACE_RED=UNEXPECTED" >&2
           exit 1
