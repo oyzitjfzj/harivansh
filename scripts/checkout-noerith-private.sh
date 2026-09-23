@@ -36,6 +36,9 @@ if ! git -C "$DEST" checkout -q --detach FETCH_HEAD >>"$ACCESS_LOG" 2>&1; then
   exit 68
 fi
 
+cp scripts/run-task4-targeted-test.sh "$DEST/scripts/run-task4-targeted-test.sh"
+chmod 700 "$DEST/scripts/run-task4-targeted-test.sh"
+
 actual="$(git -C "$DEST" rev-parse HEAD 2>>"$ACCESS_LOG")"
 if [[ "$actual" != "$TARGET_SHA" ]]; then
   echo "NOERITH_VERIFY_IDENTITY_MISMATCH" >&2
