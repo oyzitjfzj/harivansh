@@ -9,7 +9,8 @@ grep -Fq 'PRIVATE_REPOSITORY="oyzitjfzj/NOERITH"' scripts/checkout-noerith-priva
 grep -Fq 'fetch -q --no-tags --depth=1' scripts/checkout-noerith-private.sh
 grep -Fq 'TARGET_SHA="${TARGET_SHA:?TARGET_SHA required}"' scripts/checkout-noerith-private.sh
 grep -Fq 'TARGET_SHA="${TARGET_SHA:?TARGET_SHA required}"' scripts/run-noerith-action-outcome-red.sh
-grep -Fq "ModuleNotFoundError: No module named 'tools.grade_action_outcome_truth'" scripts/run-noerith-action-outcome-red.sh
+grep -Fq 'test_unknown_schema_fields_fail_closed_instead_of_disappearing_from_identity' scripts/run-noerith-action-outcome-red.sh
+grep -Fq 'GraderInputError not raised' scripts/run-noerith-action-outcome-red.sh
 
 if grep -R -n -E 'set -x|cat .*\.log|tail .*\.log|tee .*\.log|actions/upload-artifact|gh .*upload' scripts/run-noerith-action-outcome-red.sh; then
   echo "NOERITH_ACTION_OUTCOME_RELAY_PRIVACY_CONTRACT_FAILED" >&2
