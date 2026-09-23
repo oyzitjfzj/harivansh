@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
-      TARGET_SHA: b6e64dcf484a330c1a15b800bc67ac841adaf772
+      TARGET_SHA: fd353e1f30d980911b744d971c43639a870d9566
       QUAL_IMAGE: rust@sha256:ff521445a372125ed4f76e1453a1f8098f2d05332d1601d30db1c1f62757e730
     steps:
       - name: Checkout relay only
