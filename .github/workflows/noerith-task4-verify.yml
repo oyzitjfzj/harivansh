@@ -53,19 +53,7 @@ jobs:
           ROOT="${RUNNER_TEMP}/noerith-private-source"
           LOG="${RUNNER_TEMP}/action-outcome-state-space-diagnostic.log"
           cd "$ROOT"
-          python3 - <<'PY' >"$LOG" 2>&1
-import json
-from tools.verify_action_outcome_truth_state_space import verify_state_space
-r = verify_state_space()
-print(json.dumps({
-    "primary_combinations": r["primary_combinations"],
-    "mismatch_count": len(r["mismatches"]),
-    "metamorphic_failure_count": len(r["metamorphic_failures"]),
-    "conflict_cases": r["conflict_cases"],
-    "overall_status": r["overall_status"],
-}, sort_keys=True))
-raise SystemExit(0 if r["overall_status"] == "pass" else 1)
-PY
+          python3 -c 'import json; from tools.verify_action_outcome_truth_state_space import verify_state_space; r=verify_state_space(); print(json.dumps({"primary_combinations":r["primary_combinations"],"mismatch_count":len(r["mismatches"]),"metamorphic_failure_count":len(r["metamorphic_failures"]),"conflict_cases":r["conflict_cases"],"overall_status":r["overall_status"]},sort_keys=True)); raise SystemExit(0 if r["overall_status"]=="pass" else 1)' >"$LOG" 2>&1
           code=$?
           echo "code=$code" >> "$GITHUB_OUTPUT"
           if [[ "$code" -eq 0 ]]; then
