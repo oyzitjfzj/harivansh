@@ -1,0 +1,51 @@
+name: NOERITH action outcome truth RED
+
+on:
+  push:
+    branches:
+      - "build/noerith-grader-qualification-verify-20260923"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: noerith-action-outcome-red-20260923
+  cancel-in-progress: false
+
+jobs:
+  relay-self-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout relay only
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Validate focused relay privacy contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tests/test-noerith-action-outcome-relay-contract.sh
+
+  red:
+    needs: relay-self-test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      TARGET_SHA: 75855c2e2638ccf8a10d971a62fd308d7093c971
+    steps:
+      - name: Checkout relay only
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Exact private NOERITH checkout
+        shell: bash
+        env:
+          PRIVATE_READ_TOKEN: ${{ secrets.PRIVATE_READ_TOKEN }}
+        run: bash scripts/checkout-noerith-private.sh
+
+      - name: Prove focused RED
+        shell: bash
+        run: bash scripts/run-noerith-action-outcome-red.sh
