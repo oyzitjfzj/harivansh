@@ -19,27 +19,24 @@ if [[ "$actual" != "$TARGET_SHA" ]]; then
 fi
 
 cd "$ROOT"
-if [[ -e tools/grade_action_outcome_truth.py ]]; then
-  echo "NOERITH_ACTION_OUTCOME_RED=UNEXPECTED phase=implementation-already-present" >&2
-  exit 72
-fi
+test -f tools/grade_action_outcome_truth.py
 
 rm -f "$LOG"
 trap 'rm -f "$LOG"' EXIT
 
 set +e
-python3 -m unittest   tools.tests.test_grade_action_outcome_truth.ActionOutcomeTruthGraderContractTests.test_exact_fresh_target_bound_outcome_passes   -v >"$LOG" 2>&1
+python3 -m unittest   tools.tests.test_grade_action_outcome_truth.ActionOutcomeTruthGraderContractTests.test_unknown_schema_fields_fail_closed_instead_of_disappearing_from_identity   -v >"$LOG" 2>&1
 status=$?
 set -e
 
 if [[ "$status" -eq 0 ]]; then
-  echo "NOERITH_ACTION_OUTCOME_RED=UNEXPECTED phase=test-passed-before-implementation" >&2
+  echo "NOERITH_ACTION_OUTCOME_RED=UNEXPECTED phase=test-passed-before-hardening" >&2
   exit 73
 fi
 
-if ! grep -Fq "ModuleNotFoundError: No module named 'tools.grade_action_outcome_truth'" "$LOG"; then
+if ! grep -Fq "GraderInputError not raised" "$LOG"; then
   echo "NOERITH_ACTION_OUTCOME_RED=UNEXPECTED phase=wrong-failure" >&2
   exit 74
 fi
 
-echo "NOERITH_ACTION_OUTCOME_RED=PASS reason=missing-implementation-module sha=$actual"
+echo "NOERITH_ACTION_OUTCOME_RED=PASS reason=unknown-field-not-rejected sha=$actual"
