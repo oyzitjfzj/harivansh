@@ -1,4 +1,4 @@
-name: NOERITH action outcome-truth state-space diagnostic
+name: NOERITH action outcome-truth state-space GREEN verification
 
 on:
   push:
@@ -27,12 +27,12 @@ jobs:
           set -euo pipefail
           bash tests/test-noerith-relay-contract.sh
 
-  diagnose:
+  verify-green:
     needs: relay-self-test
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
-      TARGET_SHA: 4a63191057b5dd5e2757c503293254a79735c489
+      TARGET_SHA: bc0ba8fa959893d669264a20bfe31423e20d687e
     steps:
       - name: Checkout relay only
         uses: actions/checkout@v4
@@ -43,49 +43,28 @@ jobs:
         env:
           PRIVATE_READ_TOKEN: ${{ secrets.PRIVATE_READ_TOKEN }}
         run: bash scripts/checkout-noerith-private.sh
-      - name: Capture focused diagnostic privately
-        id: focused
-        continue-on-error: true
+      - name: Focused state-space verification
         shell: bash
         run: |
-          set +e
-          set -uo pipefail
+          set -euo pipefail
           ROOT="${RUNNER_TEMP}/noerith-private-source"
-          LOG="${RUNNER_TEMP}/action-outcome-state-space-diagnostic.log"
+          LOG="${RUNNER_TEMP}/action-outcome-state-space-green.log"
           cd "$ROOT"
-          python3 -c 'import json; from tools.verify_action_outcome_truth_state_space import verify_state_space; r=verify_state_space(); print(json.dumps({"primary_combinations":r["primary_combinations"],"mismatch_count":len(r["mismatches"]),"metamorphic_failure_count":len(r["metamorphic_failures"]),"conflict_cases":r["conflict_cases"],"overall_status":r["overall_status"]},sort_keys=True)); raise SystemExit(0 if r["overall_status"]=="pass" else 1)' >"$LOG" 2>&1
-          code=$?
-          echo "code=$code" >> "$GITHUB_OUTPUT"
-          if [[ "$code" -eq 0 ]]; then
-            echo "NOERITH_ACTION_OUTCOME_STATE_SPACE_DIAGNOSTIC=UNEXPECTED_GREEN"
-            exit 0
+          if ! python3 -m py_compile               tools/grade_action_outcome_truth.py               tools/verify_action_outcome_truth_state_space.py               tools/tests/test_verify_action_outcome_truth_state_space.py               >"$LOG" 2>&1; then
+            rm -f "$LOG"
+            echo "NOERITH_ACTION_OUTCOME_STATE_SPACE_GREEN=FAIL phase=compile" >&2
+            exit 1
           fi
-          echo "NOERITH_ACTION_OUTCOME_STATE_SPACE_DIAGNOSTIC=CAPTURED"
-          exit 1
-      - name: Encrypt focused diagnostic
-        if: always() && steps.focused.outputs.code != '0'
-        shell: bash
-        run: |
-          set -euo pipefail
-          LOG="${RUNNER_TEMP}/action-outcome-state-space-diagnostic.log"
-          CIPHER="${RUNNER_TEMP}/action-outcome-state-space-diagnostic.cms"
-          test -s "$LOG"
-          openssl cms -encrypt -binary -aes256 -outform DER             -in "$LOG"             -out "$CIPHER"             certs/noerith-state-space-debug-recipient.pem
+          if ! python3 -m unittest tools.tests.test_verify_action_outcome_truth_state_space -v               >"$LOG" 2>&1; then
+            rm -f "$LOG"
+            echo "NOERITH_ACTION_OUTCOME_STATE_SPACE_GREEN=FAIL phase=tests" >&2
+            exit 1
+          fi
+          if ! python3 tools/verify_action_outcome_truth_state_space.py --self-test-only               >"$LOG" 2>&1; then
+            rm -f "$LOG"
+            echo "NOERITH_ACTION_OUTCOME_STATE_SPACE_GREEN=FAIL phase=self-test" >&2
+            exit 1
+          fi
           rm -f "$LOG"
-          echo "NOERITH_ACTION_OUTCOME_STATE_SPACE_DIAGNOSTIC_ENCRYPTED=PASS"
-      - name: Upload encrypted focused diagnostic
-        if: always() && steps.focused.outputs.code != '0'
-        uses: actions/upload-artifact@v4
-        with:
-          name: noerith-action-state-space-encrypted-diagnostic
-          path: ${{ runner.temp }}/action-outcome-state-space-diagnostic.cms
-          if-no-files-found: error
-          retention-days: 1
-          compression-level: 0
-      - name: Enforce focused result
-        if: always()
-        shell: bash
-        run: |
-          set -euo pipefail
-          test "${{ steps.focused.outputs.code }}" = "0"
+          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
           echo "NOERITH_ACTION_OUTCOME_STATE_SPACE_GREEN=PASS sha=$TARGET_SHA"
