@@ -34,6 +34,7 @@ jobs:
     timeout-minutes: 30
     env:
       TARGET_SHA: 93893ee3f38c09c315c5f3eefcb98d4f4674c933
+      Q06_PACKAGE_RED_TRIGGER: 2026-09-25-a
       QUAL_IMAGE: rust@sha256:ff521445a372125ed4f76e1453a1f8098f2d05332d1601d30db1c1f62757e730
     steps:
       - name: Checkout relay only
