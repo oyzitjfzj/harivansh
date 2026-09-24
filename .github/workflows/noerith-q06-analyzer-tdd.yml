@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
-      TARGET_SHA: 1457449a5dec71f45b5c42c6b8a2fa6ba3afafd0
+      TARGET_SHA: 86188a1d9d7b8792f62765b6e81e8d2fe8a6b2ff
     steps:
       - name: Checkout relay only
         uses: actions/checkout@v4
@@ -94,5 +94,38 @@ jobs:
               print("NOERITH_Q06_ANALYZER_FAILED_TEST_SHA256=" + hashlib.sha256(name.encode()).hexdigest())
           PY
           echo "NOERITH_Q06_ANALYZER_STATUS=$status"
+          rm -f "$LOG"
+          exit 0
+
+      - name: Q06 qualifier TDD classification
+        shell: bash
+        run: |
+          set +e
+          set -uo pipefail
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          export RUSTUP_TOOLCHAIN=1.98.1
+          cd "$ROOT"
+          cargo build --quiet --manifest-path tools/q06-fixed-corpus-analyzer/Cargo.toml
+          build_status=$?
+          echo "NOERITH_Q06_QUALIFIER_BUILD_STATUS=$build_status"
+          if [ "$build_status" -ne 0 ]; then
+            echo "NOERITH_Q06_QUALIFIER_STATUS=BUILD_BLOCKED"
+            exit 0
+          fi
+          export NOERITH_Q06_ANALYZER_BIN="$ROOT/tools/q06-fixed-corpus-analyzer/target/debug/noerith-q06-fixed-corpus-analyzer"
+          LOG="${RUNNER_TEMP}/q06-qualifier.log"
+          python3 -m unittest tools.tests.test_q06_fixed_corpus_analyzer_qualification -v >"$LOG" 2>&1
+          status=$?
+          python3 - "$LOG" <<'PY'
+          import hashlib, re, sys
+          raw = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+          failed = sorted(set(re.findall(r"^(test_[A-Za-z0-9_]+).*\.\.\. (?:FAIL|ERROR)$", raw, re.MULTILINE)))
+          print(f"NOERITH_Q06_QUALIFIER_FAILED_TEST_COUNT={len(failed)}")
+          for name in failed:
+              print("NOERITH_Q06_QUALIFIER_FAILED_TEST_SHA256=" + hashlib.sha256(name.encode()).hexdigest())
+          if "ModuleNotFoundError" in raw or "ImportError" in raw:
+              print("NOERITH_Q06_QUALIFIER_IMPORT_ERROR=1")
+          PY
+          echo "NOERITH_Q06_QUALIFIER_STATUS=$status"
           rm -f "$LOG"
           exit 0
