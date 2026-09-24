@@ -222,31 +222,31 @@ jobs:
             crates/noerith-capabilities/src/quality_analysis_qualification.rs \
             crates/noerith-capabilities/tests/quality_analysis_qualification.rs
           cat >"$TMP/format-recipient.pem" <<'CERT'
------BEGIN CERTIFICATE-----
-MIIERzCCAq+gAwIBAgIUIDcnVK1KUlz6+3QnBld09Anm9g4wDQYJKoZIhvcNAQEL
-BQAwMzExMC8GA1UEAwwobm9lcml0aC1lcGhlbWVyYWwtZm9ybWF0LWhhbmRvZmYt
-Y3VycmVudDAeFw0yNjA5MjQxNDQxMDNaFw0yNjA5MjYxNDQxMDNaMDMxMTAvBgNV
-BAMMKG5vZXJpdGgtZXBoZW1lcmFsLWZvcm1hdC1oYW5kb2ZmLWN1cnJlbnQwggGi
-MA0GCSqGSIb3DQEBAQUAA4IBjwAwggGKAoIBgQC3bc7pZJQ7lZHPNM9SDrzm+ehv
-m8n7ZvANLY+XZXlnUkLKfK9SdVTq+lGXA//cZBPR590mzDranc8YKq/MvGlZnkuJ
-Kfro4EEMS+MTp2SnlJeKxfQwC/FpKK1K0Ao6Dy2QOg901gV5LCF9VzspxeBetRHT
-O/ZeWfnhMTHoL1kRXe+Bioe7g7ZDSZkiqgRK0ftvPKxwgSN4wAwYRZpEG/ot8kqX
-uamLlpHhiRXonFfBXGXJJSTfzpk9edJMKynr6d4slWP/dUSjkLDl5hgfqaXGDfP5
-y0dbwAyCKQoeRA8thdYKoOb9d7cn/0CWYXrI+YT8AyTBon09nuBMfY8TJTGWBcx0
-c9BJHmtgsJOOz0vMn/VKeaFERR5SV9MCSKhMvloYEFIxQayRtwoP16Yr6kkPTqxC
-m0E8q8krctbLYJJqf79bfeXkUBZMw1DoNblnURkwFAkNQAWkctztRrT9PwHTnG6w
-9JKFIK2eCN7jZVP7SoaDTSDdU6V2DFHgVoLvF+MCAwEAAaNTMFEwHQYDVR0OBBYE
-FEr50fClWddtj16OpkFCT6YTPDQvMB8GA1UdIwQYMBaAFEr50fClWddtj16OpkFC
-T6YTPDQvMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggGBAHLHBHYI
-rJdRX2BKN4GB1bmZOhw+LoIVxFpbBcw3ZfjKLFZ2W/fMp7lwUf+F41LS4Smo7r2W
-ZW8ij/qtktbKgLcxMD2hwkdNwzPqlflALiuM6pYmG4YKAh9FifufOlRHzYGt8JRK
-hhHsL1+3UPNKiDn0NOSfSGtVDr4G//uNWoPFvcGY9WRy99nrvZ0pa/ENnGKCqCXX
-ERWFXV7CcMZhr8FfpqLH5974rLmXIcK0WuuKVlhHiK7HPZUH8up7mHzNgHON0d10
-aGJSDOmjrfvAZx5+PAewPHNQ3dKwyd26VrVdlAXxatk+a8V6P/vCltj/RB61+qHn
-CJvpVRnCXmsQrLp72x7vIha1Ppb3Qs1dYd7Zgh5UgGYlbgSf0jYdr7F+cMtHwTsG
-JxW2CnvNxntKmkf8SWY8J5QCnhunBL7PAJmRll5lllBY6c/DwGwwxBDoqIlLmaYO
-cjpbipdc+UN8GNqiVlKcv2w42LTLj1L0FjogXUPoiALUWElMdwHwrFKmeA==
------END CERTIFICATE-----
+          -----BEGIN CERTIFICATE-----
+          MIIERzCCAq+gAwIBAgIUIDcnVK1KUlz6+3QnBld09Anm9g4wDQYJKoZIhvcNAQEL
+          BQAwMzExMC8GA1UEAwwobm9lcml0aC1lcGhlbWVyYWwtZm9ybWF0LWhhbmRvZmYt
+          Y3VycmVudDAeFw0yNjA5MjQxNDQxMDNaFw0yNjA5MjYxNDQxMDNaMDMxMTAvBgNV
+          BAMMKG5vZXJpdGgtZXBoZW1lcmFsLWZvcm1hdC1oYW5kb2ZmLWN1cnJlbnQwggGi
+          MA0GCSqGSIb3DQEBAQUAA4IBjwAwggGKAoIBgQC3bc7pZJQ7lZHPNM9SDrzm+ehv
+          m8n7ZvANLY+XZXlnUkLKfK9SdVTq+lGXA//cZBPR590mzDranc8YKq/MvGlZnkuJ
+          Kfro4EEMS+MTp2SnlJeKxfQwC/FpKK1K0Ao6Dy2QOg901gV5LCF9VzspxeBetRHT
+          O/ZeWfnhMTHoL1kRXe+Bioe7g7ZDSZkiqgRK0ftvPKxwgSN4wAwYRZpEG/ot8kqX
+          uamLlpHhiRXonFfBXGXJJSTfzpk9edJMKynr6d4slWP/dUSjkLDl5hgfqaXGDfP5
+          y0dbwAyCKQoeRA8thdYKoOb9d7cn/0CWYXrI+YT8AyTBon09nuBMfY8TJTGWBcx0
+          c9BJHmtgsJOOz0vMn/VKeaFERR5SV9MCSKhMvloYEFIxQayRtwoP16Yr6kkPTqxC
+          m0E8q8krctbLYJJqf79bfeXkUBZMw1DoNblnURkwFAkNQAWkctztRrT9PwHTnG6w
+          9JKFIK2eCN7jZVP7SoaDTSDdU6V2DFHgVoLvF+MCAwEAAaNTMFEwHQYDVR0OBBYE
+          FEr50fClWddtj16OpkFCT6YTPDQvMB8GA1UdIwQYMBaAFEr50fClWddtj16OpkFC
+          T6YTPDQvMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggGBAHLHBHYI
+          rJdRX2BKN4GB1bmZOhw+LoIVxFpbBcw3ZfjKLFZ2W/fMp7lwUf+F41LS4Smo7r2W
+          ZW8ij/qtktbKgLcxMD2hwkdNwzPqlflALiuM6pYmG4YKAh9FifufOlRHzYGt8JRK
+          hhHsL1+3UPNKiDn0NOSfSGtVDr4G//uNWoPFvcGY9WRy99nrvZ0pa/ENnGKCqCXX
+          ERWFXV7CcMZhr8FfpqLH5974rLmXIcK0WuuKVlhHiK7HPZUH8up7mHzNgHON0d10
+          aGJSDOmjrfvAZx5+PAewPHNQ3dKwyd26VrVdlAXxatk+a8V6P/vCltj/RB61+qHn
+          CJvpVRnCXmsQrLp72x7vIha1Ppb3Qs1dYd7Zgh5UgGYlbgSf0jYdr7F+cMtHwTsG
+          JxW2CnvNxntKmkf8SWY8J5QCnhunBL7PAJmRll5lllBY6c/DwGwwxBDoqIlLmaYO
+          cjpbipdc+UN8GNqiVlKcv2w42LTLj1L0FjogXUPoiALUWElMdwHwrFKmeA==
+          -----END CERTIFICATE-----
           CERT
           openssl cms -encrypt -binary -aes256 -outform DER \
             -in "$TMP/formatted.tar.gz" \
