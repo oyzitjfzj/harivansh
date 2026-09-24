@@ -161,6 +161,39 @@ jobs:
           echo "NOERITH_ISOLATED_STATUS=$isolated_status"
           rm -f "$isolated_log"
           rm -rf "$clean_cwd"
+
+          if [[ "$fmt_status" -ne 0 ]]; then
+            semantic_root="$(mktemp -d)/repo"
+            cp -a "$ROOT" "$semantic_root"
+            while IFS= read -r -d '' path; do
+              rustfmt --edition 2024 "$path" >/dev/null 2>&1
+            done < <(find "$semantic_root/crates/noerith-capabilities" -type f -name '*.rs' -print0 | sort -z)
+            semantic_log="${RUNNER_TEMP}/noerith-semantic-red-classifier.log"
+            semantic_cwd="$(mktemp -d)"
+            (
+              cd "$semantic_cwd"
+              RUSTUP_TOOLCHAIN=1.98.1 python -I "$semantic_root/tools/verify_isolated_pinned_crate.py" crates/noerith-capabilities
+            ) >"$semantic_log" 2>&1
+            semantic_status=$?
+            python - "$semantic_log" <<'PY'
+import re, sys
+text = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+codes = sorted(set(re.findall(r"error\[(E\d{4})\]", text)))
+for code in codes:
+    print(f"NOERITH_SEMANTIC_RUST_ERROR_CODE={code}")
+for stage in ("selftest", "rustc", "generate-lockfile", "fetch", "metadata", "fmt", "check", "clippy", "test"):
+    if stage == "selftest":
+        pattern = "isolated verifier contract self-tests passed"
+    elif stage == "rustc":
+        pattern = "+ rustc --version"
+    else:
+        pattern = f"+ cargo {stage} "
+    print(f"NOERITH_SEMANTIC_REACHED_{stage.replace('-', '_')}={1 if pattern in text else 0}")
+PY
+            echo "NOERITH_SEMANTIC_STATUS=$semantic_status"
+            rm -rf "$(dirname "$semantic_root")" "$semantic_cwd" "$semantic_log"
+          fi
+
           echo "NOERITH_PREFLIGHT_FMT_STATUS=$fmt_status"
           echo "NOERITH_PREFLIGHT_CHECK_STATUS=$check_status"
           exit 0
