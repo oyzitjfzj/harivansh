@@ -176,20 +176,20 @@ jobs:
             ) >"$semantic_log" 2>&1
             semantic_status=$?
             python - "$semantic_log" <<'PY'
-import re, sys
-text = open(sys.argv[1], encoding="utf-8", errors="replace").read()
-codes = sorted(set(re.findall(r"error\[(E\d{4})\]", text)))
-for code in codes:
-    print(f"NOERITH_SEMANTIC_RUST_ERROR_CODE={code}")
-for stage in ("selftest", "rustc", "generate-lockfile", "fetch", "metadata", "fmt", "check", "clippy", "test"):
-    if stage == "selftest":
-        pattern = "isolated verifier contract self-tests passed"
-    elif stage == "rustc":
-        pattern = "+ rustc --version"
-    else:
-        pattern = f"+ cargo {stage} "
-    print(f"NOERITH_SEMANTIC_REACHED_{stage.replace('-', '_')}={1 if pattern in text else 0}")
-PY
+          import re, sys
+          text = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+          codes = sorted(set(re.findall(r"error\[(E\d{4})\]", text)))
+          for code in codes:
+              print(f"NOERITH_SEMANTIC_RUST_ERROR_CODE={code}")
+          for stage in ("selftest", "rustc", "generate-lockfile", "fetch", "metadata", "fmt", "check", "clippy", "test"):
+              if stage == "selftest":
+                  pattern = "isolated verifier contract self-tests passed"
+              elif stage == "rustc":
+                  pattern = "+ rustc --version"
+              else:
+                  pattern = f"+ cargo {stage} "
+              print(f"NOERITH_SEMANTIC_REACHED_{stage.replace('-', '_')}={1 if pattern in text else 0}")
+          PY
             echo "NOERITH_SEMANTIC_STATUS=$semantic_status"
             rm -rf "$(dirname "$semantic_root")" "$semantic_cwd" "$semantic_log"
           fi
