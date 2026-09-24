@@ -62,8 +62,9 @@ jobs:
               if ! rustfmt --edition 2024 --check "$path" >/dev/null 2>&1; then
                 path_hash="$(printf '%s' "$path" | sha256sum | cut -d' ' -f1)"
                 echo "NOERITH_FMT_PATH_SHA256=$path_hash"
-                formatted="$(mktemp)"
-                rustfmt --edition 2024 --emit stdout "$path" >"$formatted" 2>/dev/null || true
+                formatted="$(mktemp --suffix=.rs)"
+                cp "$path" "$formatted"
+                rustfmt --edition 2024 "$formatted" >/dev/null 2>&1 || true
                 python - "$path" "$formatted" <<'PY'
           import difflib, sys
           original = open(sys.argv[1], encoding="utf-8").read().splitlines()
