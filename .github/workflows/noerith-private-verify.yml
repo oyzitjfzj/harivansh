@@ -34,7 +34,7 @@ jobs:
     timeout-minutes: 30
     env:
       TARGET_SHA: aff778da0730210710bdf4b51c13c797954651e7
-      Q06_PACKAGE_RED_TRIGGER: 2026-09-25-task2-format-green-b
+      Q06_PACKAGE_RED_TRIGGER: 2026-09-25-test-fmt-fingerprint-c
       QUAL_IMAGE: rust@sha256:ff521445a372125ed4f76e1453a1f8098f2d05332d1601d30db1c1f62757e730
     steps:
       - name: Checkout relay only
@@ -265,6 +265,33 @@ jobs:
               for idx in range(j1, j2):
                   line = after[idx].encode()
                   print(f"NOERITH_LIB_FMT_NEW=line={idx+1}:len={len(line)}:sha256={hashlib.sha256(line).hexdigest()}")
+          PY
+          rm -rf "$TMP"
+
+      - name: Source-free Q06 package-test rustfmt fingerprint
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          TMP="$(mktemp -d)"
+          cp -a "$ROOT" "$TMP/repo"
+          cp "$TMP/repo/crates/noerith-capabilities/tests/q06_evaluation_package.rs" "$TMP/test.before"
+          cd "$TMP/repo"
+          rustfmt --edition 2024 crates/noerith-capabilities/tests/q06_evaluation_package.rs >/dev/null 2>&1 || true
+          python3 - "$TMP/test.before" "$TMP/repo/crates/noerith-capabilities/tests/q06_evaluation_package.rs" <<'PY'
+          import difflib, hashlib, sys
+          before = open(sys.argv[1], encoding="utf-8").read().splitlines()
+          after = open(sys.argv[2], encoding="utf-8").read().splitlines()
+          for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(a=before, b=after).get_opcodes():
+              if tag == "equal":
+                  continue
+              print(f"NOERITH_Q06_TEST_FMT_EDIT={tag}:old={i1+1}-{i2}:new={j1+1}-{j2}:old_count={i2-i1}:new_count={j2-j1}")
+              for idx in range(i1, i2):
+                  line = before[idx].encode()
+                  print(f"NOERITH_Q06_TEST_FMT_OLD=line={idx+1}:len={len(line)}:sha256={hashlib.sha256(line).hexdigest()}")
+              for idx in range(j1, j2):
+                  line = after[idx].encode()
+                  print(f"NOERITH_Q06_TEST_FMT_NEW=line={idx+1}:len={len(line)}:sha256={hashlib.sha256(line).hexdigest()}")
           PY
           rm -rf "$TMP"
 
