@@ -88,6 +88,22 @@ jobs:
               print(f"NOERITH_RUST_ERROR_CODE={code} count={count}")
           PY
           rm -f "$check_json"
+          isolated_log="${RUNNER_TEMP}/noerith-isolated-classifier.log"
+          clean_cwd="$(mktemp -d)"
+          (
+            cd "$clean_cwd"
+            RUSTUP_TOOLCHAIN=1.98.1 python -I "$ROOT/tools/verify_isolated_pinned_crate.py" crates/noerith-capabilities
+          ) >"$isolated_log" 2>&1
+          isolated_status=$?
+          last_stage="$(awk '/^\\+ cargo / {stage=$3} END {print stage}' "$isolated_log")"
+          case "$last_stage" in
+            generate-lockfile|fetch|metadata|fmt|check|clippy|test) ;;
+            *) last_stage="unknown" ;;
+          esac
+          echo "NOERITH_ISOLATED_LAST_CARGO_STAGE=$last_stage"
+          echo "NOERITH_ISOLATED_STATUS=$isolated_status"
+          rm -f "$isolated_log"
+          rm -rf "$clean_cwd"
           echo "NOERITH_PREFLIGHT_FMT_STATUS=$fmt_status"
           echo "NOERITH_PREFLIGHT_CHECK_STATUS=$check_status"
           exit 0
