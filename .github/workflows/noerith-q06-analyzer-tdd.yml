@@ -125,6 +125,24 @@ jobs:
               print("NOERITH_Q06_QUALIFIER_FAILED_TEST_SHA256=" + hashlib.sha256(name.encode()).hexdigest())
           if "ModuleNotFoundError" in raw or "ImportError" in raw:
               print("NOERITH_Q06_QUALIFIER_IMPORT_ERROR=1")
+          summary = re.findall(r"FAILED \\(([^)]*)\\)", raw)
+          for item in summary:
+              safe = {}
+              for key in ("failures", "errors", "skipped"):
+                  match = re.search(rf"{key}=(\\d+)", item)
+                  if match:
+                      safe[key] = int(match.group(1))
+              print("NOERITH_Q06_QUALIFIER_SUMMARY=" + ",".join(f"{k}={v}" for k,v in sorted(safe.items())))
+          for exc in ("AssertionError","QualifierError","TypeError","ValueError","KeyError","NameError","SyntaxError","FileNotFoundError"):
+              count = raw.count(exc)
+              if count:
+                  print(f"NOERITH_Q06_QUALIFIER_EXCEPTION={exc} count={count}")
+          for path, line in re.findall(r'File "([^"]+)", line (\\d+)', raw):
+              print(
+                  "NOERITH_Q06_QUALIFIER_TRACE_SITE="
+                  + hashlib.sha256(path.encode()).hexdigest()
+                  + ":line=" + line
+              )
           PY
           echo "NOERITH_Q06_QUALIFIER_STATUS=$status"
           rm -f "$LOG"
