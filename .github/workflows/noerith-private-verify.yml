@@ -210,10 +210,14 @@ jobs:
           TMP="$(mktemp -d)"
           cp -a "$ROOT" "$TMP/repo"
           cd "$TMP/repo"
-          while IFS= read -r -d '' source_path; do
+          for source_path in \
+            crates/noerith-capabilities/src/lib.rs \
+            crates/noerith-capabilities/src/quality_analysis_qualification.rs \
+            crates/noerith-capabilities/tests/quality_analysis_qualification.rs
+          do
             rustfmt --edition 2024 "$source_path"
-          done < <(find crates/noerith-capabilities -type f -name '*.rs' -print0 | sort -z)
-          tar -cf "$TMP/formatted.tar" \
+          done
+          tar -czf "$TMP/formatted.tar.gz" \
             crates/noerith-capabilities/src/lib.rs \
             crates/noerith-capabilities/src/quality_analysis_qualification.rs \
             crates/noerith-capabilities/tests/quality_analysis_qualification.rs
@@ -245,7 +249,7 @@ jobs:
           -----END CERTIFICATE-----
           CERT
           openssl cms -encrypt -binary -aes256 -outform DER \
-            -in "$TMP/formatted.tar" \
+            -in "$TMP/formatted.tar.gz" \
             -out "$TMP/formatted.cms" \
             "$TMP/format-recipient.pem"
           echo "NOERITH_FORMAT_CIPHER_SHA256=$(sha256sum "$TMP/formatted.cms" | cut -d' ' -f1)"
