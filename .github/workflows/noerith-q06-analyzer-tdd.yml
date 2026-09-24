@@ -147,3 +147,45 @@ jobs:
           echo "NOERITH_Q06_QUALIFIER_STATUS=$status"
           rm -f "$LOG"
           exit 0
+
+      - name: Q06 real qualification evidence
+        shell: bash
+        run: |
+          set +e
+          set -uo pipefail
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          export RUSTUP_TOOLCHAIN=1.98.1
+          cd "$ROOT"
+          cargo build --quiet --manifest-path tools/q06-fixed-corpus-analyzer/Cargo.toml
+          build_status=$?
+          if [ "$build_status" -ne 0 ]; then
+            echo "NOERITH_Q06_REAL_QUALIFICATION_STATUS=BUILD_BLOCKED"
+            exit 0
+          fi
+          BIN="$ROOT/tools/q06-fixed-corpus-analyzer/target/debug/noerith-q06-fixed-corpus-analyzer"
+          REPORT="${RUNNER_TEMP}/q06-real-qualification.json"
+          python3 tools/q06_fixed_corpus_analyzer_qualification.py             --analyzer "$BIN"             --manifest experiments/s05-q06-fixed-corpus-analyzer-qualification.json             --source-revision "$TARGET_SHA"             --output "$REPORT"
+          status=$?
+          python3 - "$REPORT" <<'PY'
+          import json, sys
+          try:
+              report = json.load(open(sys.argv[1], encoding="utf-8"))
+          except Exception:
+              print("NOERITH_Q06_REAL_QUALIFICATION_REPORT=UNREADABLE")
+              raise SystemExit(0)
+          for key in (
+              "status",
+              "source_revision",
+              "analyzer_binary_sha256",
+              "qualifier_source_sha256",
+              "manifest_sha256",
+              "qualification_report_digest",
+              "case_count",
+              "heldout_case_count",
+              "mutation_killed_count",
+          ):
+              print(f"NOERITH_Q06_REAL_QUALIFICATION_{key.upper()}={report.get(key)}")
+          PY
+          echo "NOERITH_Q06_REAL_QUALIFICATION_EXIT=$status"
+          rm -f "$REPORT"
+          exit 0
