@@ -83,26 +83,38 @@ jobs:
             done < <(find crates/noerith-capabilities -type f -name '*.rs' -print0 | sort -z)
           fi
           check_json="${RUNNER_TEMP}/noerith-check.jsonl"
-          cargo check --manifest-path crates/noerith-capabilities/Cargo.toml --locked --all-targets --message-format=json >"$check_json" 2>/dev/null
+          cargo check --manifest-path crates/noerith-capabilities/Cargo.toml --locked --all-targets --message-format=json >"$check_json" 2>&1
           check_status=$?
           python - "$check_json" <<'PY'
-          import json, sys
+          import json, re, sys
           codes = {}
-          with open(sys.argv[1], encoding="utf-8") as stream:
-              for line in stream:
-                  try:
-                      event = json.loads(line)
-                  except json.JSONDecodeError:
-                      continue
-                  if event.get("reason") != "compiler-message":
-                      continue
-                  message = event.get("message") or {}
-                  if message.get("level") != "error":
-                      continue
-                  code = (message.get("code") or {}).get("code") or "NO_CODE"
-                  codes[code] = codes.get(code, 0) + 1
+          raw = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+          for line in raw.splitlines():
+              try:
+                  event = json.loads(line)
+              except json.JSONDecodeError:
+                  continue
+              if event.get("reason") != "compiler-message":
+                  continue
+              message = event.get("message") or {}
+              if message.get("level") != "error":
+                  continue
+              code = (message.get("code") or {}).get("code") or "NO_CODE"
+              codes[code] = codes.get(code, 0) + 1
+          for code in re.findall(r"error\\[(E\\d{4})\\]", raw):
+              codes[code] = max(1, codes.get(code, 0))
           for code, count in sorted(codes.items()):
               print(f"NOERITH_RUST_ERROR_CODE={code} count={count}")
+          lower = raw.lower()
+          if not codes:
+              for label, marker in (
+                  ("LOCKED", "lock file"),
+                  ("MANIFEST", "failed to parse manifest"),
+                  ("WORKSPACE", "current package believes it's in a workspace"),
+                  ("NETWORK", "failed to download"),
+              ):
+                  if marker in lower:
+                      print(f"NOERITH_CHECK_FAILURE_CLASS={label}")
           PY
           rm -f "$check_json"
           isolated_log="${RUNNER_TEMP}/noerith-isolated-classifier.log"
