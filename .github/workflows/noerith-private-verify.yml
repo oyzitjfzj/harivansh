@@ -57,6 +57,14 @@ jobs:
           cd "$ROOT"
           cargo fmt --manifest-path crates/noerith-capabilities/Cargo.toml -- --check >/dev/null 2>&1
           fmt_status=$?
+          if [[ "$fmt_status" -ne 0 ]]; then
+            while IFS= read -r -d '' path; do
+              if ! rustfmt --edition 2024 --check "$path" >/dev/null 2>&1; then
+                path_hash="$(printf '%s' "$path" | sha256sum | cut -d' ' -f1)"
+                echo "NOERITH_FMT_PATH_SHA256=$path_hash"
+              fi
+            done < <(find crates/noerith-capabilities -type f -name '*.rs' -print0 | sort -z)
+          fi
           cargo check --manifest-path crates/noerith-capabilities/Cargo.toml --locked --all-targets >/dev/null 2>&1
           check_status=$?
           echo "NOERITH_PREFLIGHT_FMT_STATUS=$fmt_status"
