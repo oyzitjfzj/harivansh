@@ -1,0 +1,77 @@
+name: NOERITH Q06 analyzer TDD
+
+on:
+  push:
+    branches:
+      - "build/noerith-private-verify-20260923"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: noerith-q06-analyzer-tdd
+  cancel-in-progress: false
+
+jobs:
+  verify-q06-analyzer:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      TARGET_SHA: de9105e8c6247af55a903f6e3082f77077ce1392
+    steps:
+      - name: Checkout relay only
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Validate relay privacy contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash tests/test-noerith-relay-contract.sh
+
+      - name: Exact private NOERITH checkout
+        shell: bash
+        env:
+          PRIVATE_READ_TOKEN: ${{ secrets.PRIVATE_READ_TOKEN }}
+        run: bash scripts/checkout-noerith-private.sh
+
+      - name: Q06 analyzer classify
+        shell: bash
+        run: |
+          set +e
+          set -uo pipefail
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy --no-self-update >/dev/null 2>&1
+          export RUSTUP_TOOLCHAIN=1.98.1
+          LOG="${RUNNER_TEMP}/q06-analyzer.log"
+          cd "$ROOT"
+          rustc --version | sed 's/^/NOERITH_Q06_RUSTC=/'
+          cargo test --manifest-path tools/q06-fixed-corpus-analyzer/Cargo.toml --all-targets --message-format=json >"$LOG" 2>&1
+          status=$?
+          python3 - "$LOG" <<'PY'
+          import hashlib, json, re, sys
+          raw = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+          codes = {}
+          for line in raw.splitlines():
+              try:
+                  event = json.loads(line)
+              except json.JSONDecodeError:
+                  continue
+              if event.get("reason") != "compiler-message":
+                  continue
+              message = event.get("message") or {}
+              if message.get("level") != "error":
+                  continue
+              code = (message.get("code") or {}).get("code") or "NO_CODE"
+              codes[code] = codes.get(code, 0) + 1
+          for code, count in sorted(codes.items()):
+              print(f"NOERITH_Q06_ANALYZER_RUST_ERROR_CODE={code} count={count}")
+          failed = sorted(set(re.findall(r"^test ([^ ]+) \.\.\. FAILED$", raw, re.MULTILINE)))
+          print(f"NOERITH_Q06_ANALYZER_FAILED_TEST_COUNT={len(failed)}")
+          for name in failed:
+              print("NOERITH_Q06_ANALYZER_FAILED_TEST_SHA256=" + hashlib.sha256(name.encode()).hexdigest())
+          PY
+          echo "NOERITH_Q06_ANALYZER_STATUS=$status"
+          rm -f "$LOG"
+          exit 0
