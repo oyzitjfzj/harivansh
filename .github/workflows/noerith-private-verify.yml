@@ -202,6 +202,58 @@ jobs:
           echo "NOERITH_PREFLIGHT_CHECK_STATUS=$check_status"
           exit 0
 
+      - name: Encrypted exact rustfmt handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          TMP="$(mktemp -d)"
+          cp -a "$ROOT" "$TMP/repo"
+          cd "$TMP/repo"
+          while IFS= read -r -d '' source_path; do
+            rustfmt --edition 2024 "$source_path"
+          done < <(find crates/noerith-capabilities -type f -name '*.rs' -print0 | sort -z)
+          tar -cf "$TMP/formatted.tar" \
+            crates/noerith-capabilities/src/lib.rs \
+            crates/noerith-capabilities/src/quality_analysis_qualification.rs \
+            crates/noerith-capabilities/tests/quality_analysis_qualification.rs
+          cat >"$TMP/format-recipient.pem" <<'CERT'
+          -----BEGIN CERTIFICATE-----
+          MIIENzCCAp+gAwIBAgIUQrfRJUJEj5I28a0mhh25u7firk0wDQYJKoZIhvcNAQEL
+          BQAwKzEpMCcGA1UEAwwgbm9lcml0aC1lcGhlbWVyYWwtZm9ybWF0LWhhbmRvZmYw
+          HhcNMjYwOTI0MDcyMzM1WhcNMjYwOTI1MDcyMzM1WjArMSkwJwYDVQQDDCBub2Vy
+          aXRoLWVwaGVtZXJhbC1mb3JtYXQtaGFuZG9mZjCCAaIwDQYJKoZIhvcNAQEBBQAD
+          ggGPADCCAYoCggGBALZzIQ0+a/xw3KM+glJ8B3tC09AfvI/6nTpow9V1o/StKEPf
+          i9ihN9/0OWBH58cdW6SAfEMVQWrMgVlt12Kw5u4L8gJVBA6fVWZP0kKGFLqwK22+
+          adSdQp+ENQ3bmTcH5rslsaYkF4rRajJHINXbANG1zbnXkgq8yYGZSYYYkqxib78V
+          6QWXG5BWIUC3jqz1EEM7VWOdJxvg1rLvTIOESWSu7i4w7jPAKRdInTL9PnK8Mh13
+          ei25k04VRyQ+UWW6aRyCedXp8xKlYQujKFZ4UQUwyPpCSA1lOHJR3B/mIOk8q1Yo
+          pf9y2emA+tTrPS5w1TwcyUIwjAsiFdkRiy/vDjwfLax8+PqoXepMHoOFt6YVWqE7
+          gTEnQvmcRnxkck7PmKC5Zq3kV9yuVFLQxZhFYiJMq92eXnxLcG4tafqg9Dkqkp45
+          m/LqbjYZb6/C1XbYDOAnw3NHx2JsyjoHAJMcPDOp/Gs3PojCXlUf52zhRoe6VS5S
+          55jEiAqqyMnetHJYdwIDAQABo1MwUTAdBgNVHQ4EFgQUcF6eaLeSEpKZVZalXoTS
+          HxCemrgwHwYDVR0jBBgwFoAUcF6eaLeSEpKZVZalXoTSHxCemrgwDwYDVR0TAQH/
+          BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAYEAWR7K10GRV2rZGsZ+9A5/+49P+Y+d
+          R8tsF0kUl7t03clpjsm288PJRpNzaZI3LAJsZqek83AW64Vf9MeuvY2grJnKv/OK
+          9ygEghKGiAJM1UekrCabHDJDM/00QYeyOO48etannZJZrCxFkvrqW7iDTzBUIO7t
+          PVLzJZBCtIYVpcxl2mNPJDlKHJn2RhRnAa+ai1b/wCp8MfiRchvMkexaGKH32b5w
+          B7oVM8wWeDSAsTpHTf16DzAJUX8yPhUGB0Y0IoeBtEoEgdgLeZX6DYc6pXikjv31
+          pCuLC06CTxww+miNma2MT0n+cqKei+Qnzh6btRRQ8OQ6UjPF/wUXnoa1I8jENbGQ
+          8EhVsMr7sjqP4eiHsFyjOMFuUwMdOAVAN+WGpRVcq6p3qfpY2fCY+S++sSvwykaa
+          xtl0X8jg8KHRdXIWkEtx8KFk9JDS5BBYJYwe1176IWYCdsEC4ro3o05lJ3kKztdB
+          KlCkhIDEcjVg+r8hzJ7GPbaNTXqj1xbOtj8y
+          -----END CERTIFICATE-----
+          CERT
+          openssl cms -encrypt -binary -aes256 -outform DER \
+            -in "$TMP/formatted.tar" \
+            -out "$TMP/formatted.cms" \
+            "$TMP/format-recipient.pem"
+          echo "NOERITH_FORMAT_CIPHER_SHA256=$(sha256sum "$TMP/formatted.cms" | cut -d' ' -f1)"
+          printf 'NOERITH_FORMAT_CIPHER_BASE64='
+          base64 -w0 "$TMP/formatted.cms"
+          echo
+          rm -rf "$TMP"
+
       - name: Current-head verification
         shell: bash
         env:
