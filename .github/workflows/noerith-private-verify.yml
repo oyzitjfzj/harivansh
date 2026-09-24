@@ -62,6 +62,22 @@ jobs:
               if ! rustfmt --edition 2024 --check "$path" >/dev/null 2>&1; then
                 path_hash="$(printf '%s' "$path" | sha256sum | cut -d' ' -f1)"
                 echo "NOERITH_FMT_PATH_SHA256=$path_hash"
+                formatted="$(mktemp)"
+                rustfmt --edition 2024 --emit stdout "$path" >"$formatted" 2>/dev/null || true
+                python - "$path" "$formatted" <<'PY'
+          import difflib, sys
+          original = open(sys.argv[1], encoding="utf-8").read().splitlines()
+          formatted = open(sys.argv[2], encoding="utf-8").read().splitlines()
+          for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(a=original, b=formatted).get_opcodes():
+              if tag == "equal":
+                  continue
+              print(
+                  "NOERITH_FMT_EDIT="
+                  f"{tag}:old={i1 + 1}-{i2}:new={j1 + 1}-{j2}:"
+                  f"old_count={i2 - i1}:new_count={j2 - j1}"
+              )
+          PY
+                rm -f "$formatted"
               fi
             done < <(find crates/noerith-capabilities -type f -name '*.rs' -print0 | sort -z)
           fi
