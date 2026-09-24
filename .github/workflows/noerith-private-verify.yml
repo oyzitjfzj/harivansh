@@ -176,11 +176,15 @@ jobs:
             ) >"$semantic_log" 2>&1
             semantic_status=$?
             python - "$semantic_log" <<'PY'
-          import re, sys
+          import hashlib, re, sys
           text = open(sys.argv[1], encoding="utf-8", errors="replace").read()
           codes = sorted(set(re.findall(r"error\[(E\d{4})\]", text)))
           for code in codes:
               print(f"NOERITH_SEMANTIC_RUST_ERROR_CODE={code}")
+          failed_tests = sorted(set(re.findall(r"^test ([^ ]+) \.\.\. FAILED$", text, re.MULTILINE)))
+          print(f"NOERITH_SEMANTIC_FAILED_TEST_COUNT={len(failed_tests)}")
+          for name in failed_tests:
+              print("NOERITH_SEMANTIC_FAILED_TEST_SHA256=" + hashlib.sha256(name.encode()).hexdigest())
           for stage in ("selftest", "rustc", "generate-lockfile", "fetch", "metadata", "fmt", "check", "clippy", "test"):
               if stage == "selftest":
                   pattern = "isolated verifier contract self-tests passed"
