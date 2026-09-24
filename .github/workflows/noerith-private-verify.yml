@@ -256,7 +256,17 @@ jobs:
           printf 'NOERITH_FORMAT_CIPHER_BASE64='
           base64 -w0 "$TMP/formatted.cms"
           echo
+          cp "$TMP/formatted.cms" "${RUNNER_TEMP}/noerith-format-handoff.cms"
           rm -rf "$TMP"
+
+      - name: Upload encrypted rustfmt handoff
+        uses: actions/upload-artifact@v4
+        with:
+          name: noerith-format-handoff
+          path: ${{ runner.temp }}/noerith-format-handoff.cms
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
 
       - name: Current-head verification
         shell: bash
