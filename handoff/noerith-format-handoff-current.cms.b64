@@ -1,0 +1,2 @@
+sha256=$(sha256sum "$TMP/formatted.cms" | cut -d' ' -f1)"[0m
+'[0m
