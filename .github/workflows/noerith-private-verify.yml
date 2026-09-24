@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
-      TARGET_SHA: e5f974717482ce8af57c8e8ea051fff7c551b182
+      TARGET_SHA: 20bb1724be70f5c40f5a70c038499e7d666404d6
       QUAL_IMAGE: rust@sha256:ff521445a372125ed4f76e1453a1f8098f2d05332d1601d30db1c1f62757e730
     steps:
       - name: Checkout relay only
@@ -213,14 +213,18 @@ jobs:
           for source_path in \
             crates/noerith-capabilities/src/lib.rs \
             crates/noerith-capabilities/src/quality_analysis_qualification.rs \
-            crates/noerith-capabilities/tests/quality_analysis_qualification.rs
+            crates/noerith-capabilities/tests/quality_analysis_qualification.rs \
+            crates/noerith-capabilities/src/quality_analysis.rs \
+            crates/noerith-capabilities/tests/quality_analysis.rs
           do
             rustfmt --edition 2024 "$source_path"
           done
           tar -czf "$TMP/formatted.tar.gz" \
             crates/noerith-capabilities/src/lib.rs \
             crates/noerith-capabilities/src/quality_analysis_qualification.rs \
-            crates/noerith-capabilities/tests/quality_analysis_qualification.rs
+            crates/noerith-capabilities/tests/quality_analysis_qualification.rs \
+            crates/noerith-capabilities/src/quality_analysis.rs \
+            crates/noerith-capabilities/tests/quality_analysis.rs
           cat >"$TMP/format-recipient.pem" <<'CERT'
           -----BEGIN CERTIFICATE-----
           MIIERzCCAq+gAwIBAgIUIDcnVK1KUlz6+3QnBld09Anm9g4wDQYJKoZIhvcNAQEL
