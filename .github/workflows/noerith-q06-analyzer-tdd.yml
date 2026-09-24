@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
-      TARGET_SHA: 86188a1d9d7b8792f62765b6e81e8d2fe8a6b2ff
+      TARGET_SHA: 70dda3483d487f27daf65f3674cec0804b2db999
     steps:
       - name: Checkout relay only
         uses: actions/checkout@v4
