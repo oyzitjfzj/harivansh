@@ -95,12 +95,20 @@ jobs:
             RUSTUP_TOOLCHAIN=1.98.1 python -I "$ROOT/tools/verify_isolated_pinned_crate.py" crates/noerith-capabilities
           ) >"$isolated_log" 2>&1
           isolated_status=$?
-          last_stage="$(awk '/^\\+ cargo / {stage=$3} END {print stage}' "$isolated_log")"
-          case "$last_stage" in
-            generate-lockfile|fetch|metadata|fmt|check|clippy|test) ;;
-            *) last_stage="unknown" ;;
-          esac
-          echo "NOERITH_ISOLATED_LAST_CARGO_STAGE=$last_stage"
+          for stage in selftest rustc generate-lockfile fetch metadata fmt check clippy test; do
+            case "$stage" in
+              selftest) pattern='isolated verifier contract self-tests passed' ;;
+              rustc) pattern='+ rustc --version' ;;
+              *) pattern="+ cargo $stage " ;;
+            esac
+            if grep -Fq "$pattern" "$isolated_log"; then
+              safe_stage="${stage//-/_}"
+              echo "NOERITH_ISOLATED_REACHED_${safe_stage}=1"
+            else
+              safe_stage="${stage//-/_}"
+              echo "NOERITH_ISOLATED_REACHED_${safe_stage}=0"
+            fi
+          done
           echo "NOERITH_ISOLATED_STATUS=$isolated_status"
           rm -f "$isolated_log"
           rm -rf "$clean_cwd"
