@@ -33,8 +33,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
-      TARGET_SHA: bdb57731f9c8faef57fe5bff4713600951dfe1af
-      Q06_PACKAGE_RED_TRIGGER: 2026-09-25-binding-green-a
+      TARGET_SHA: aff778da0730210710bdf4b51c13c797954651e7
+      Q06_PACKAGE_RED_TRIGGER: 2026-09-25-task2-format-green-b
       QUAL_IMAGE: rust@sha256:ff521445a372125ed4f76e1453a1f8098f2d05332d1601d30db1c1f62757e730
     steps:
       - name: Checkout relay only
