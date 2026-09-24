@@ -112,6 +112,16 @@ jobs:
             RUSTUP_TOOLCHAIN=1.98.1 python -I "$ROOT/tools/verify_isolated_pinned_crate.py" crates/noerith-capabilities
           ) >"$isolated_log" 2>&1
           isolated_status=$?
+          python - "$isolated_log" <<'PY'
+          import re, sys
+          text = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+          for code in sorted(set(re.findall(r"error\[(E\d{4})\]", text))):
+              print(f"NOERITH_ISOLATED_RUST_ERROR_CODE={code}")
+          for lint in sorted(set(re.findall(r"(?:clippy::)?([a-z][a-z0-9_]+)\s+implied by\s+-D\s+warnings", text))):
+              print(f"NOERITH_ISOLATED_DENIED_LINT={lint}")
+          for lint in sorted(set(re.findall(r"\[(clippy::[a-z0-9_]+)\]", text))):
+              print(f"NOERITH_ISOLATED_CLIPPY_LINT={lint}")
+          PY
           for stage in selftest rustc generate-lockfile fetch metadata fmt check clippy test; do
             case "$stage" in
               selftest) pattern='isolated verifier contract self-tests passed' ;;
