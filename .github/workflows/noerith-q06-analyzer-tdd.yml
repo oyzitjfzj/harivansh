@@ -67,6 +67,27 @@ jobs:
               codes[code] = codes.get(code, 0) + 1
           for code, count in sorted(codes.items()):
               print(f"NOERITH_Q06_ANALYZER_RUST_ERROR_CODE={code} count={count}")
+          for line in raw.splitlines():
+              try:
+                  event = json.loads(line)
+              except json.JSONDecodeError:
+                  continue
+              if event.get("reason") != "compiler-message":
+                  continue
+              message = event.get("message") or {}
+              if message.get("level") != "error":
+                  continue
+              code = (message.get("code") or {}).get("code") or "NO_CODE"
+              for span in message.get("spans") or []:
+                  if not span.get("is_primary"):
+                      continue
+                  path = str(span.get("file_name") or "")
+                  path_hash = hashlib.sha256(path.encode()).hexdigest()
+                  print(
+                      "NOERITH_Q06_ANALYZER_ERROR_SITE="
+                      f"{code}:path_sha256={path_hash}:"
+                      f"line={span.get('line_start')}:col={span.get('column_start')}"
+                  )
           failed = sorted(set(re.findall(r"^test ([^ ]+) \.\.\. FAILED$", raw, re.MULTILINE)))
           print(f"NOERITH_Q06_ANALYZER_FAILED_TEST_COUNT={len(failed)}")
           for name in failed:
