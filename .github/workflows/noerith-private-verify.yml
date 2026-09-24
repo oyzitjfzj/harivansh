@@ -241,6 +241,33 @@ jobs:
           echo "NOERITH_PREFLIGHT_CHECK_STATUS=$check_status"
           exit 0
 
+      - name: Source-free lib rustfmt fingerprint
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          TMP="$(mktemp -d)"
+          cp -a "$ROOT" "$TMP/repo"
+          cp "$TMP/repo/crates/noerith-capabilities/src/lib.rs" "$TMP/lib.before"
+          cd "$TMP/repo"
+          rustfmt --edition 2024 crates/noerith-capabilities/src/lib.rs >/dev/null 2>&1 || true
+          python3 - "$TMP/lib.before" "$TMP/repo/crates/noerith-capabilities/src/lib.rs" <<'PY'
+          import difflib, hashlib, sys
+          before = open(sys.argv[1], encoding="utf-8").read().splitlines()
+          after = open(sys.argv[2], encoding="utf-8").read().splitlines()
+          for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(a=before, b=after).get_opcodes():
+              if tag == "equal":
+                  continue
+              print(f"NOERITH_LIB_FMT_EDIT={tag}:old={i1+1}-{i2}:new={j1+1}-{j2}:old_count={i2-i1}:new_count={j2-j1}")
+              for idx in range(i1, i2):
+                  line = before[idx].encode()
+                  print(f"NOERITH_LIB_FMT_OLD=line={idx+1}:len={len(line)}:sha256={hashlib.sha256(line).hexdigest()}")
+              for idx in range(j1, j2):
+                  line = after[idx].encode()
+                  print(f"NOERITH_LIB_FMT_NEW=line={idx+1}:len={len(line)}:sha256={hashlib.sha256(line).hexdigest()}")
+          PY
+          rm -rf "$TMP"
+
       - name: Encrypted exact rustfmt handoff
         shell: bash
         run: |
