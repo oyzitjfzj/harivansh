@@ -65,8 +65,29 @@ jobs:
               fi
             done < <(find crates/noerith-capabilities -type f -name '*.rs' -print0 | sort -z)
           fi
-          cargo check --manifest-path crates/noerith-capabilities/Cargo.toml --locked --all-targets >/dev/null 2>&1
+          check_json="${RUNNER_TEMP}/noerith-check.jsonl"
+          cargo check --manifest-path crates/noerith-capabilities/Cargo.toml --locked --all-targets --message-format=json >"$check_json" 2>/dev/null
           check_status=$?
+          python - "$check_json" <<'PY'
+          import json, sys
+          codes = {}
+          with open(sys.argv[1], encoding="utf-8") as stream:
+              for line in stream:
+                  try:
+                      event = json.loads(line)
+                  except json.JSONDecodeError:
+                      continue
+                  if event.get("reason") != "compiler-message":
+                      continue
+                  message = event.get("message") or {}
+                  if message.get("level") != "error":
+                      continue
+                  code = (message.get("code") or {}).get("code") or "NO_CODE"
+                  codes[code] = codes.get(code, 0) + 1
+          for code, count in sorted(codes.items()):
+              print(f"NOERITH_RUST_ERROR_CODE={code} count={count}")
+          PY
+          rm -f "$check_json"
           echo "NOERITH_PREFLIGHT_FMT_STATUS=$fmt_status"
           echo "NOERITH_PREFLIGHT_CHECK_STATUS=$check_status"
           exit 0
