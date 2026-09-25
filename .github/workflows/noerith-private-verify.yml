@@ -178,7 +178,7 @@ jobs:
                   "NOERITH_ISOLATED_RUST_ERROR_SITE="
                   f"{code}:path_sha256={path_hash}:line={line}:col={col}"
               )
-          for lint in sorted(set(re.findall(r"(?:clippy::)?([a-z][a-z0-9_]+)\s+implied by\s+-D\s+warnings", text))):
+          for lint in sorted(set(re.findall(r"(?:clippy::)?([a-z][a-z0-9_-]+)\s+implied by\s+-D\s+warnings", text))):
               print(f"NOERITH_ISOLATED_DENIED_LINT={lint}")
           for lint in sorted(set(re.findall(r"\[(clippy::[a-z0-9_]+)\]", text))):
               print(f"NOERITH_ISOLATED_CLIPPY_LINT={lint}")
