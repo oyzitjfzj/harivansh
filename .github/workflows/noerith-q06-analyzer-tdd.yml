@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
-      TARGET_SHA: 26ff1f1f61f97dae7e915fea7807d84b1d903f70
+      TARGET_SHA: 8f327490de03caae6d629a30a0eb9ce6be6ddf26
     steps:
       - name: Checkout relay only
         uses: actions/checkout@v4
@@ -46,7 +46,7 @@ jobs:
           export RUSTUP_TOOLCHAIN=1.98.1
           LOG="${RUNNER_TEMP}/q06-real-memory.log"
           cd "$ROOT"
-          cargo test --manifest-path tools/q06-memory-context-eval/Cargo.toml --test schema_seed --message-format=json >"$LOG" 2>&1
+          cargo test --locked --manifest-path tools/q06-memory-context-eval/Cargo.toml --test schema_seed --message-format=json >"$LOG" 2>&1
           status=$?
           python3 - "$LOG" <<'PY'
           import hashlib, json, re, sys
@@ -79,6 +79,18 @@ jobs:
             printf '\n'
           fi
           rm -f "$LOG"
+
+          SELFTEST_LOG="${RUNNER_TEMP}/q06-real-memory-selftest.log"
+          cargo run --locked --quiet --manifest-path tools/q06-memory-context-eval/Cargo.toml -- --self-test-only >"$SELFTEST_LOG" 2>&1
+          selftest_status=$?
+          echo "NOERITH_Q06_REAL_SELFTEST_STATUS=$selftest_status"
+          rm -f "$SELFTEST_LOG"
+
+          ISO_LOG="${RUNNER_TEMP}/q06-real-memory-isolated.log"
+          python3 tools/verify_isolated_pinned_crate.py tools/q06-memory-context-eval >"$ISO_LOG" 2>&1
+          isolated_status=$?
+          echo "NOERITH_Q06_REAL_ISOLATED_STATUS=$isolated_status"
+          rm -f "$ISO_LOG"
           exit 0
 
       - name: Q06 analyzer classify
