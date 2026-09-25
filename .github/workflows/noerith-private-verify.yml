@@ -83,6 +83,45 @@ jobs:
           rm -f "$LOG"
           exit 0
 
+      - name: Real Q06 Task 1 sanitized clippy classification
+        shell: bash
+        run: |
+          set +e
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          rustup toolchain install 1.98.1 --profile minimal --component clippy --no-self-update >/dev/null 2>&1
+          export RUSTUP_TOOLCHAIN=1.98.1
+          cd "$ROOT"
+          LOG="${RUNNER_TEMP}/noerith-q06-real-clippy.jsonl"
+          cargo clippy --manifest-path tools/q06-memory-context-eval/Cargo.toml --all-targets --locked --message-format=json -- -D warnings >"$LOG" 2>&1
+          status=$?
+          python3 - "$LOG" <<'PY'
+          import json, sys
+          codes = {}
+          levels = {}
+          with open(sys.argv[1], encoding="utf-8", errors="replace") as handle:
+              for line in handle:
+                  try:
+                      event = json.loads(line)
+                  except json.JSONDecodeError:
+                      continue
+                  if event.get("reason") != "compiler-message":
+                      continue
+                  msg = event.get("message") or {}
+                  level = msg.get("level") or "unknown"
+                  if level not in ("error", "warning"):
+                      continue
+                  code = (msg.get("code") or {}).get("code") or "NO_CODE"
+                  codes[code] = codes.get(code, 0) + 1
+                  levels[level] = levels.get(level, 0) + 1
+          for code, count in sorted(codes.items()):
+              print(f"NOERITH_Q06_REAL_CLIPPY_CODE={code} count={count}")
+          for level, count in sorted(levels.items()):
+              print(f"NOERITH_Q06_REAL_CLIPPY_LEVEL={level} count={count}")
+          PY
+          echo "NOERITH_Q06_REAL_CLIPPY_STATUS=$status"
+          rm -f "$LOG"
+          exit 0
+
       - name: Real Q06 authoring Task 1 exact isolated verification
         shell: bash
         run: |
