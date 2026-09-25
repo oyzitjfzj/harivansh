@@ -132,6 +132,53 @@ jobs:
           rm -f "$LOG"
           exit 0
 
+      - name: Real Q06 Task 1 source-free rustfmt fingerprint
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          rustup toolchain install 1.98.1 --profile minimal --component rustfmt --no-self-update >/dev/null 2>&1
+          export RUSTUP_TOOLCHAIN=1.98.1
+          TMP="$(mktemp -d)"
+          cp -R "$ROOT/tools/q06-memory-context-eval" "$TMP/original"
+          cp -R "$ROOT/tools/q06-memory-context-eval" "$TMP/formatted"
+          cargo fmt --manifest-path "$TMP/formatted/Cargo.toml"
+          python3 - "$TMP/original" "$TMP/formatted" <<'PY'
+          import difflib, hashlib, pathlib, sys
+          original = pathlib.Path(sys.argv[1])
+          formatted = pathlib.Path(sys.argv[2])
+          for src in sorted(original.rglob("*.rs")):
+              rel = src.relative_to(original)
+              dst = formatted / rel
+              old = src.read_bytes().splitlines()
+              new = dst.read_bytes().splitlines()
+              if old == new:
+                  continue
+              print("NOERITH_Q06_REAL_FMT_PATH_SHA256=" + hashlib.sha256(str(rel).encode()).hexdigest())
+              sm = difflib.SequenceMatcher(a=old, b=new, autojunk=False)
+              for tag, i1, i2, j1, j2 in sm.get_opcodes():
+                  if tag == "equal":
+                      continue
+                  print(
+                      f"NOERITH_Q06_REAL_FMT_EDIT={tag}:"
+                      f"old={i1+1}-{i2}:new={j1+1}-{j2}:"
+                      f"old_count={i2-i1}:new_count={j2-j1}"
+                  )
+                  for idx, line in enumerate(old[i1:i2], start=i1+1):
+                      print(
+                          "NOERITH_Q06_REAL_FMT_OLD="
+                          f"line={idx}:len={len(line)}:"
+                          f"sha256={hashlib.sha256(line).hexdigest()}"
+                      )
+                  for idx, line in enumerate(new[j1:j2], start=j1+1):
+                      print(
+                          "NOERITH_Q06_REAL_FMT_NEW="
+                          f"line={idx}:len={len(line)}:"
+                          f"sha256={hashlib.sha256(line).hexdigest()}"
+                      )
+          PY
+          rm -rf "$TMP"
+
       - name: Real Q06 authoring Task 1 exact isolated verification
         shell: bash
         run: |
