@@ -33,8 +33,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
-      TARGET_SHA: 6bd1bfec78dd2704e33ee65270995be34bf0b548
-      Q06_PACKAGE_RED_TRIGGER: 2026-09-25-task3-q06-floor-substitution-clean-red
+      TARGET_SHA: 11f31a448a1e6eefdb96ea4c0884da7ae2b6e49e
+      Q06_PACKAGE_RED_TRIGGER: 2026-09-25-task3-q06-plan-mismatch-clean-red
       QUAL_IMAGE: rust@sha256:ff521445a372125ed4f76e1453a1f8098f2d05332d1601d30db1c1f62757e730
     steps:
       - name: Checkout relay only
