@@ -77,8 +77,8 @@ jobs:
               codes[code] = codes.get(code, 0) + 1
           for code, count in sorted(codes.items()):
               print(f"NOERITH_Q06_REAL_TASK1_RUST_ERROR_CODE={code} count={count}")
-          print(f"NOERITH_Q06_REAL_TASK1_STATUS={status}")
           PY
+          echo "NOERITH_Q06_REAL_TASK1_STATUS=$status"
           rm -f "$LOG"
           exit 0
 
