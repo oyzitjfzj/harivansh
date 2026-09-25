@@ -125,6 +125,37 @@ jobs:
           done < <(find "$ROOT/tools/q06-memory-context-eval" -type f -name '*.rs' -print0 | sort -z)
           rm -rf "$FMT_ROOT"
 
+          CLIPPY_LOG="${RUNNER_TEMP}/q06-real-memory-clippy.jsonl"
+          cargo clippy --locked --manifest-path tools/q06-memory-context-eval/Cargo.toml --all-targets --message-format=json -- -D warnings >"$CLIPPY_LOG" 2>&1
+          clippy_status=$?
+          python3 - "$CLIPPY_LOG" <<'PY'
+          import hashlib, json, sys
+          raw = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+          for line in raw.splitlines():
+              try:
+                  event = json.loads(line)
+              except json.JSONDecodeError:
+                  continue
+              if event.get("reason") != "compiler-message":
+                  continue
+              message = event.get("message") or {}
+              if message.get("level") != "error":
+                  continue
+              code = (message.get("code") or {}).get("code") or "NO_CODE"
+              print(f"NOERITH_Q06_REAL_CLIPPY_CODE={code}")
+              for span in message.get("spans") or []:
+                  if span.get("is_primary"):
+                      path = str(span.get("file_name") or "")
+                      print(
+                          "NOERITH_Q06_REAL_CLIPPY_SITE="
+                          + hashlib.sha256(path.encode()).hexdigest()
+                          + ":line=" + str(span.get("line_start"))
+                          + ":col=" + str(span.get("column_start"))
+                      )
+          PY
+          echo "NOERITH_Q06_REAL_CLIPPY_STATUS=$clippy_status"
+          rm -f "$CLIPPY_LOG"
+
           ISO_LOG="${RUNNER_TEMP}/q06-real-memory-isolated.log"
           python3 tools/verify_isolated_pinned_crate.py tools/q06-memory-context-eval >"$ISO_LOG" 2>&1
           isolated_status=$?
