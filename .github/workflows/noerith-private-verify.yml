@@ -34,7 +34,7 @@ jobs:
     timeout-minutes: 30
     env:
       TARGET_SHA: 9b1d7a21907cf3085d964c6af79cb3290df9449c
-      Q06_TASK4_BINDING_FIELD_RED_TRIGGER: 2026-09-25-final-review-red-diag
+      Q06_TASK4_BINDING_FIELD_RED_TRIGGER: 2026-09-25-final-review-red-diag-b
       QUAL_IMAGE: rust@sha256:ff521445a372125ed4f76e1453a1f8098f2d05332d1601d30db1c1f62757e730
     steps:
       - name: Checkout relay only
@@ -104,6 +104,23 @@ jobs:
           else
             echo "NOERITH_Q06_POPULATION_RED_CLASS=OTHER"
           fi
+          python3 - "$LOG" <<'PY'
+          import sys
+          text = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+          variants = [
+              "Q06EvaluationPackageTrialPopulationMismatch",
+              "MissingTrialEvidence",
+              "DuplicateTrialEvidence",
+              "CriterionAnalysisTrialMismatch",
+              "UnknownCriterionTrialEvidence",
+              "SeverityAnalysisTrialPopulationMismatch",
+              "SeverityAnalysisGradePopulationMismatch",
+              "SeverityClassPopulationMismatch",
+              "DuplicateSeverityTrialRef",
+          ]
+          found = [name for name in variants if name in text]
+          print("NOERITH_Q06_POPULATION_RED_ERROR_CLASS=" + (",".join(found) if found else "NONE"))
+          PY
           echo "NOERITH_Q06_POPULATION_RED_STATUS=$status"
           rm -f "$LOG"
           exit 0
