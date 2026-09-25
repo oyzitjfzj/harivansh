@@ -72,6 +72,12 @@ jobs:
               print("NOERITH_Q06_REAL_FAILED_TEST_SHA256=" + hashlib.sha256(name.encode()).hexdigest())
           PY
           echo "NOERITH_Q06_REAL_STATUS=$status"
+          if [ "$status" -eq 0 ] && [ -f tools/q06-memory-context-eval/Cargo.lock ]; then
+            echo "NOERITH_Q06_REAL_LOCK_SHA256=$(sha256sum tools/q06-memory-context-eval/Cargo.lock | cut -d' ' -f1)"
+            printf 'NOERITH_Q06_REAL_LOCK_BASE64='
+            base64 -w0 tools/q06-memory-context-eval/Cargo.lock
+            printf '\n'
+          fi
           rm -f "$LOG"
           exit 0
 
