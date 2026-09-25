@@ -33,8 +33,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
-      TARGET_SHA: 4d76a14161db40dd711de1fdbfcf2ae5b14b9962
-      Q06_TASK4_BINDING_FIELD_RED_TRIGGER: 2026-09-26-real-q06-task1-green-a
+      TARGET_SHA: 27840ba5f2ff4d8400838fc8b795371e07274861
+      Q06_TASK4_BINDING_FIELD_RED_TRIGGER: 2026-09-26-real-q06-task1-exact-27840ba
       QUAL_IMAGE: rust@sha256:ff521445a372125ed4f76e1453a1f8098f2d05332d1601d30db1c1f62757e730
     steps:
       - name: Checkout relay only
@@ -81,6 +81,67 @@ jobs:
           echo "NOERITH_Q06_REAL_TASK1_STATUS=$status"
           rm -f "$LOG"
           exit 0
+
+      - name: Real Q06 authoring Task 1 exact isolated verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy --no-self-update >/dev/null 2>&1
+          export RUSTUP_TOOLCHAIN=1.98.1
+          cd "$ROOT"
+
+          task_log="${RUNNER_TEMP}/noerith-q06-real-task1-exact.log"
+          if cargo test --manifest-path tools/q06-memory-context-eval/Cargo.toml --test schema_seed --locked >"$task_log" 2>&1; then
+            echo "NOERITH_Q06_REAL_TASK1_EXACT_TEST=PASS"
+          else
+            echo "NOERITH_Q06_REAL_TASK1_EXACT_TEST=FAIL"
+            rm -f "$task_log"
+            exit 1
+          fi
+          rm -f "$task_log"
+
+          verify_log="${RUNNER_TEMP}/noerith-q06-real-isolated.log"
+          clean_cwd="$(mktemp -d)"
+          if (
+            cd "$clean_cwd"
+            python3 -I "$ROOT/tools/verify_isolated_pinned_crate.py" tools/q06-memory-context-eval
+          ) >"$verify_log" 2>&1; then
+            echo "NOERITH_Q06_REAL_TASK1_ISOLATED=PASS"
+          else
+            echo "NOERITH_Q06_REAL_TASK1_ISOLATED=FAIL"
+            python3 - "$verify_log" <<'PY'
+          import re, sys
+          raw = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+          for code in sorted(set(re.findall(r"error\[(E\d{4})\]", raw))):
+              print(f"NOERITH_Q06_REAL_TASK1_ISOLATED_RUST_ERROR_CODE={code}")
+          for label, marker in (
+              ("FMT", "cargo fmt"),
+              ("CHECK", "cargo check"),
+              ("CLIPPY", "cargo clippy"),
+              ("TEST", "cargo test"),
+              ("LOCK", "lock"),
+              ("DEPENDENCY", "dependency"),
+          ):
+              if marker in raw:
+                  print(f"NOERITH_Q06_REAL_TASK1_ISOLATED_HINT={label}")
+          PY
+            rm -f "$verify_log"
+            rm -rf "$clean_cwd"
+            exit 1
+          fi
+          rm -f "$verify_log"
+          rm -rf "$clean_cwd"
+
+          cli_log="${RUNNER_TEMP}/noerith-q06-real-cli.log"
+          if cargo run --manifest-path tools/q06-memory-context-eval/Cargo.toml --locked -- --self-test-only >"$cli_log" 2>&1; then
+            echo "NOERITH_Q06_REAL_TASK1_CLI_SELFTEST=PASS"
+          else
+            echo "NOERITH_Q06_REAL_TASK1_CLI_SELFTEST=FAIL"
+            rm -f "$cli_log"
+            exit 1
+          fi
+          rm -f "$cli_log"
 
       - name: Q06 analyzer TDD classification
         shell: bash
