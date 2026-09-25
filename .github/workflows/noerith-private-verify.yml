@@ -34,7 +34,7 @@ jobs:
     timeout-minutes: 30
     env:
       TARGET_SHA: 9b1d7a21907cf3085d964c6af79cb3290df9449c
-      Q06_TASK4_BINDING_FIELD_RED_TRIGGER: 2026-09-25-final-review-red-diag-b
+      Q06_TASK4_BINDING_FIELD_RED_TRIGGER: 2026-09-25-final-review-red-diag-c
       QUAL_IMAGE: rust@sha256:ff521445a372125ed4f76e1453a1f8098f2d05332d1601d30db1c1f62757e730
     steps:
       - name: Checkout relay only
@@ -120,6 +120,18 @@ jobs:
           ]
           found = [name for name in variants if name in text]
           print("NOERITH_Q06_POPULATION_RED_ERROR_CLASS=" + (",".join(found) if found else "NONE"))
+          generic = []
+          for label, marker in (
+              ("EXPECT_ERR_UNEXPECTED_OK", "must not admit trial evidence outside"),
+              ("ASSERT_EQ_MISMATCH", "assertion `left == right` failed"),
+              ("RESULT_UNWRAP", "Result::unwrap"),
+              ("OPTION_UNWRAP", "Option::unwrap"),
+              ("PANIC", "panicked at"),
+              ("COMPILE_ERROR", "error[E"),
+          ):
+              if marker in text:
+                  generic.append(label)
+          print("NOERITH_Q06_POPULATION_RED_GENERIC_CLASS=" + (",".join(generic) if generic else "NONE"))
           PY
           echo "NOERITH_Q06_POPULATION_RED_STATUS=$status"
           rm -f "$LOG"
