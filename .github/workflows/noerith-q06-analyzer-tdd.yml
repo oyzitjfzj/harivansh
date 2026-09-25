@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
-      TARGET_SHA: 8f327490de03caae6d629a30a0eb9ce6be6ddf26
+      TARGET_SHA: 0688d805432aeffc1a860e7d3f6133e0d1e87335
     steps:
       - name: Checkout relay only
         uses: actions/checkout@v4
@@ -91,6 +91,27 @@ jobs:
           isolated_status=$?
           echo "NOERITH_Q06_REAL_ISOLATED_STATUS=$isolated_status"
           rm -f "$ISO_LOG"
+          exit 0
+
+      - name: Q06 pinned verifier profile TDD classification
+        shell: bash
+        run: |
+          set +e
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          cd "$ROOT"
+          LOG="${RUNNER_TEMP}/q06-pinned-profile.log"
+          python3 -m unittest tools.tests.test_verify_isolated_pinned_crate_profiles -v >"$LOG" 2>&1
+          status=$?
+          python3 - "$LOG" <<'PY'
+          import hashlib, re, sys
+          raw = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+          failed = sorted(set(re.findall(r"^(test_[A-Za-z0-9_]+).*... (?:FAIL|ERROR)$", raw, re.MULTILINE)))
+          print(f"NOERITH_Q06_PINNED_PROFILE_FAILED_TEST_COUNT={len(failed)}")
+          for name in failed:
+              print("NOERITH_Q06_PINNED_PROFILE_FAILED_TEST_SHA256=" + hashlib.sha256(name.encode()).hexdigest())
+          PY
+          echo "NOERITH_Q06_PINNED_PROFILE_STATUS=$status"
+          rm -f "$LOG"
           exit 0
 
       - name: Q06 analyzer classify
