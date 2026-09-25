@@ -33,8 +33,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
-      TARGET_SHA: 17c08f64058b384979e7664aceab9a5b22b4df54
-      Q06_TASK4_BINDING_FIELD_RED_TRIGGER: 2026-09-25-final-review-red-d
+      TARGET_SHA: af3a3a45647f01130fc2066efa00ea61a3f7cdae
+      Q06_TASK4_BINDING_FIELD_RED_TRIGGER: 2026-09-25-corpus-substitution-red
       QUAL_IMAGE: rust@sha256:ff521445a372125ed4f76e1453a1f8098f2d05332d1601d30db1c1f62757e730
     steps:
       - name: Checkout relay only
@@ -83,57 +83,6 @@ jobs:
               print("NOERITH_Q06_ANALYZER_FAILED_TEST_SHA256=" + hashlib.sha256(name.encode()).hexdigest())
           PY
           echo "NOERITH_Q06_ANALYZER_STATUS=$status"
-          rm -f "$LOG"
-          exit 0
-
-      - name: Q06 package population RED classification
-        shell: bash
-        run: |
-          set +e
-          ROOT="${RUNNER_TEMP}/noerith-private-source"
-          rustup toolchain install 1.98.1 --profile minimal --no-self-update >/dev/null 2>&1
-          export RUSTUP_TOOLCHAIN=1.98.1
-          LOG="${RUNNER_TEMP}/q06-package-population-red.log"
-          cd "$ROOT"
-          cargo test --manifest-path crates/noerith-capabilities/Cargo.toml             --test quality_analysis             q06_analysis_rejects_additional_trial_population_outside_verified_package             -- --exact >"$LOG" 2>&1
-          status=$?
-          if grep -Fq "Q06 analysis must not admit trial evidence outside the exact package-bound population" "$LOG"; then
-            echo "NOERITH_Q06_POPULATION_RED_CLASS=FORBIDDEN_EXTRA_POPULATION_ACCEPTED"
-          elif grep -Fq "called `Result::unwrap()` on an `Err` value" "$LOG"; then
-            echo "NOERITH_Q06_POPULATION_RED_CLASS=FIXTURE_SETUP_FAILED"
-          else
-            echo "NOERITH_Q06_POPULATION_RED_CLASS=OTHER"
-          fi
-          python3 - "$LOG" <<'PY'
-          import sys
-          text = open(sys.argv[1], encoding="utf-8", errors="replace").read()
-          variants = [
-              "Q06EvaluationPackageTrialPopulationMismatch",
-              "MissingTrialEvidence",
-              "DuplicateTrialEvidence",
-              "CriterionAnalysisTrialMismatch",
-              "UnknownCriterionTrialEvidence",
-              "SeverityAnalysisTrialPopulationMismatch",
-              "SeverityAnalysisGradePopulationMismatch",
-              "SeverityClassPopulationMismatch",
-              "DuplicateSeverityTrialRef",
-          ]
-          found = [name for name in variants if name in text]
-          print("NOERITH_Q06_POPULATION_RED_ERROR_CLASS=" + (",".join(found) if found else "NONE"))
-          generic = []
-          for label, marker in (
-              ("EXPECT_ERR_UNEXPECTED_OK", "must not admit trial evidence outside"),
-              ("ASSERT_EQ_MISMATCH", "assertion `left == right` failed"),
-              ("RESULT_UNWRAP", "Result::unwrap"),
-              ("OPTION_UNWRAP", "Option::unwrap"),
-              ("PANIC", "panicked at"),
-              ("COMPILE_ERROR", "error[E"),
-          ):
-              if marker in text:
-                  generic.append(label)
-          print("NOERITH_Q06_POPULATION_RED_GENERIC_CLASS=" + (",".join(generic) if generic else "NONE"))
-          PY
-          echo "NOERITH_Q06_POPULATION_RED_STATUS=$status"
           rm -f "$LOG"
           exit 0
 
