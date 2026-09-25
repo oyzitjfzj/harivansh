@@ -160,6 +160,12 @@ jobs:
           ):
               if marker in lower:
                   print(f"NOERITH_Q06_REAL_ISOLATED_FAILURE_CLASS={label}")
+          errors = [line.strip() for line in raw.splitlines() if line.startswith("verification error:")]
+          if errors:
+              final = errors[-1]
+              safe = re.sub(r"/tmp/[^ :]+", "/tmp/<redacted>", final)
+              safe = re.sub(r"/home/[^ :]+", "/home/<redacted>", safe)
+              print("NOERITH_Q06_REAL_ISOLATED_FINAL_ERROR=" + safe[:800])
           PY
           echo "NOERITH_Q06_REAL_ISOLATED_STATUS=$isolated_status"
           rm -f "$ISO_LOG"
