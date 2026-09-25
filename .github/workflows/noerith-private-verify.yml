@@ -33,8 +33,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
-      TARGET_SHA: 454243234f1129b3f0850f568351a18f9f057b23
-      Q06_TASK4_BINDING_FIELD_RED_TRIGGER: 2026-09-26-real-q06-task1-final-green-b
+      TARGET_SHA: 07419f4a21f9d18b7df607193b3f3486f92356dc
+      Q06_TASK4_BINDING_FIELD_RED_TRIGGER: 2026-09-26-real-q06-task2-kernel-red
       QUAL_IMAGE: rust@sha256:ff521445a372125ed4f76e1453a1f8098f2d05332d1601d30db1c1f62757e730
     steps:
       - name: Checkout relay only
@@ -47,6 +47,44 @@ jobs:
         env:
           PRIVATE_READ_TOKEN: ${{ secrets.PRIVATE_READ_TOKEN }}
         run: bash scripts/checkout-noerith-private.sh
+
+      - name: Real Q06 authoring Task 2 kernel RED classification
+        shell: bash
+        run: |
+          set +e
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          rustup toolchain install 1.98.1 --profile minimal --no-self-update >/dev/null 2>&1
+          export RUSTUP_TOOLCHAIN=1.98.1
+          LOG="${RUNNER_TEMP}/noerith-q06-real-task2-kernel.log"
+          cd "$ROOT"
+          cargo test --manifest-path tools/q06-memory-context-eval/Cargo.toml --test kernel --message-format=json >"$LOG" 2>&1
+          status=$?
+          python3 - "$LOG" <<'PY'
+          import json, re, sys, hashlib
+          raw = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+          codes = {}
+          for line in raw.splitlines():
+              try:
+                  event = json.loads(line)
+              except json.JSONDecodeError:
+                  continue
+              if event.get("reason") != "compiler-message":
+                  continue
+              message = event.get("message") or {}
+              if message.get("level") != "error":
+                  continue
+              code = (message.get("code") or {}).get("code") or "NO_CODE"
+              codes[code] = codes.get(code, 0) + 1
+          for code, count in sorted(codes.items()):
+              print(f"NOERITH_Q06_REAL_TASK2_RUST_ERROR_CODE={code} count={count}")
+          failed = sorted(set(re.findall(r"^test ([^ ]+) ... FAILED$", raw, re.MULTILINE)))
+          print(f"NOERITH_Q06_REAL_TASK2_FAILED_TEST_COUNT={len(failed)}")
+          for name in failed:
+              print("NOERITH_Q06_REAL_TASK2_FAILED_TEST_SHA256=" + hashlib.sha256(name.encode()).hexdigest())
+          PY
+          echo "NOERITH_Q06_REAL_TASK2_STATUS=$status"
+          rm -f "$LOG"
+          exit 0
 
       - name: Real Q06 authoring Task 1 TDD classification
         shell: bash
