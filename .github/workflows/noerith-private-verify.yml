@@ -113,6 +113,16 @@ jobs:
                   code = (msg.get("code") or {}).get("code") or "NO_CODE"
                   codes[code] = codes.get(code, 0) + 1
                   levels[level] = levels.get(level, 0) + 1
+                  for span in msg.get("spans") or []:
+                      if not span.get("is_primary"):
+                          continue
+                      import hashlib
+                      file_name = span.get("file_name") or ""
+                      print(
+                          "NOERITH_Q06_REAL_CLIPPY_SITE="
+                          f"code={code}:path_sha256={hashlib.sha256(file_name.encode()).hexdigest()}:"
+                          f"line={span.get('line_start')}:col={span.get('column_start')}"
+                      )
           for code, count in sorted(codes.items()):
               print(f"NOERITH_Q06_REAL_CLIPPY_CODE={code} count={count}")
           for level, count in sorted(levels.items()):
