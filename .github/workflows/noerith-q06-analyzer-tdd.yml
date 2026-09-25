@@ -86,6 +86,45 @@ jobs:
           echo "NOERITH_Q06_REAL_SELFTEST_STATUS=$selftest_status"
           rm -f "$SELFTEST_LOG"
 
+          FMT_ROOT="${RUNNER_TEMP}/q06-real-fmt"
+          rm -rf "$FMT_ROOT"
+          mkdir -p "$FMT_ROOT"
+          while IFS= read -r -d '' path; do
+            if ! rustfmt --edition 2024 --check "$path" >/dev/null 2>&1; then
+              rel="${path#$ROOT/}"
+              echo "NOERITH_Q06_REAL_FMT_PATH_SHA256=$(printf '%s' "$rel" | sha256sum | cut -d' ' -f1)"
+              formatted="$FMT_ROOT/$(printf '%s' "$rel" | sha256sum | cut -d' ' -f1).rs"
+              cp "$path" "$formatted"
+              rustfmt --edition 2024 "$formatted" >/dev/null 2>&1 || true
+              python3 - "$path" "$formatted" <<'PY'
+          import difflib, hashlib, sys
+          old = open(sys.argv[1], encoding="utf-8").read().splitlines()
+          new = open(sys.argv[2], encoding="utf-8").read().splitlines()
+          for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(a=old, b=new).get_opcodes():
+              if tag == "equal":
+                  continue
+              print(
+                  "NOERITH_Q06_REAL_FMT_EDIT="
+                  f"{tag}:old={i1+1}-{i2}:new={j1+1}-{j2}:"
+                  f"old_count={i2-i1}:new_count={j2-j1}"
+              )
+              for idx in range(i1, i2):
+                  raw = old[idx].encode()
+                  print(
+                      "NOERITH_Q06_REAL_FMT_OLD="
+                      f"line={idx+1}:len={len(raw)}:sha256={hashlib.sha256(raw).hexdigest()}"
+                  )
+              for idx in range(j1, j2):
+                  raw = new[idx].encode()
+                  print(
+                      "NOERITH_Q06_REAL_FMT_NEW="
+                      f"line={idx+1}:len={len(raw)}:sha256={hashlib.sha256(raw).hexdigest()}"
+                  )
+          PY
+            fi
+          done < <(find "$ROOT/tools/q06-memory-context-eval" -type f -name '*.rs' -print0 | sort -z)
+          rm -rf "$FMT_ROOT"
+
           ISO_LOG="${RUNNER_TEMP}/q06-real-memory-isolated.log"
           python3 tools/verify_isolated_pinned_crate.py tools/q06-memory-context-eval >"$ISO_LOG" 2>&1
           isolated_status=$?
