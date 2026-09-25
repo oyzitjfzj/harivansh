@@ -147,6 +147,19 @@ jobs:
                   print(f"NOERITH_Q06_REAL_ISOLATED_CLASS={label}")
           for code in sorted(set(re.findall(r"error\\[(E\\d{4})\\]", raw))):
               print(f"NOERITH_Q06_REAL_ISOLATED_RUST_ERROR_CODE={code}")
+          failed = re.findall(
+              r"verification error: command failed with exit code \\d+: cargo (generate-lockfile|fetch|metadata|fmt|check|clippy|test)\\b",
+              raw,
+          )
+          for command in failed:
+              print(f"NOERITH_Q06_REAL_ISOLATED_FAILED_COMMAND={command.upper()}")
+          for marker, label in (
+              ("unexpected direct dependency resolution", "METADATA_DEPENDENCY"),
+              ("no reviewed isolated dependency profile", "PROFILE"),
+              ("unsupported manifest", "MANIFEST"),
+          ):
+              if marker in lower:
+                  print(f"NOERITH_Q06_REAL_ISOLATED_FAILURE_CLASS={label}")
           PY
           echo "NOERITH_Q06_REAL_ISOLATED_STATUS=$isolated_status"
           rm -f "$ISO_LOG"
