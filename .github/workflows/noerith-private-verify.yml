@@ -217,6 +217,54 @@ jobs:
           PY
           rm -rf "$TMP"
 
+      - name: Ephemeral encrypted Q06 rustfmt handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          rustup toolchain install 1.98.1 --profile minimal --component rustfmt --no-self-update >/dev/null 2>&1
+          export RUSTUP_TOOLCHAIN=1.98.1
+          TMP="$(mktemp -d)"
+          cp -R "$ROOT/tools/q06-memory-context-eval" "$TMP/formatted"
+          cargo fmt --manifest-path "$TMP/formatted/Cargo.toml"
+          tar -C "$TMP/formatted" -czf "$TMP/formatted.tar.gz" src tests
+          cat > "$TMP/recipient.pem" <<'CERT'
+-----BEGIN CERTIFICATE-----
+MIIELzCCApegAwIBAgIUCGxavBhf/v83vPYnN+BlXbdt0O0wDQYJKoZIhvcNAQEL
+BQAwJzElMCMGA1UEAwwcbm9lcml0aC1lcGhlbWVyYWwtcTA2LWZvcm1hdDAeFw0y
+NjA5MjUyMjI3MTJaFw0yNjA5MjYyMjI3MTJaMCcxJTAjBgNVBAMMHG5vZXJpdGgt
+ZXBoZW1lcmFsLXEwNi1mb3JtYXQwggGiMA0GCSqGSIb3DQEBAQUAA4IBjwAwggGK
+AoIBgQCxgaAYaLmV/ugTqCuAwNR1xeIjfA2V2BoJQv5+MtRZOwnZ7ZA64aSnOQ8A
+aiA8UDKiW6kxuOfu6TlOPOQYVjZ90Z4PDHZVFW7ANvfn7/pnppUwXAnYMNjThbT0
+5C7kmXbLqaqNbtAi4SAnOhQVGi6+VAwA9RxH2vOPhQ0ynBVCCowoUhPCR69YMfpA
+61DrKoByC2vGkk/yIhKRnVpVCe+iRIcz6IHeg+v5mh6nuAEqmftFRUV/C0fmTl62
+i09POUgH3svfb7SzWFiBwTyutO74TwkZZAHX0ndAYTA4kqgtrwPQPMwbXZz7G1e9
+E7TU580LR34JpGSz4n1SRvCH0gR8A+vYKq/Gz30nyuzOBgZDG8yWv9LI0Skn7YRv
+e/UAvaooSp49H+jqF8RveNLdysb053UQVZqLWTns4BbjW+67kc5+HK1eD0QizS50
+aggM2Aqyu302JpTuLDm0Uj0PVRHZmeTup0sHu6NWhFiNFPdwbF66VlqGxaUxJJJU
+EEVRfS0CAwEAAaNTMFEwHQYDVR0OBBYEFA6ACw8bGXU9rQZ4/LL5Y4A9m3wzMB8G
+A1UdIwQYMBaAFA6ACw8bGXU9rQZ4/LL5Y4A9m3wzMA8GA1UdEwEB/wQFMAMBAf8w
+DQYJKoZIhvcNAQELBQADggGBAJFoBSUZXRSmbkDp5vuSTd675hh+G27P48662Aj9
+olA3/eRFXA9pabTR/aqCuPwAS4PIX2XsFJ+uGkJiK4WSJLf1rajaaDySJVFToRGb
+oXGIMZakP4276alPGG3SWuyBEYgeCmpGeQgI4QKHAQnPDMAxrd/tj02qJle9qn5f
+qvq2d/XxSwBuVtRasAzUy9CUo11EflGNmR9TsgS6zttG+9yWxt6ZhPGmQ5hsoR0e
+fKZP8WUHLh0DBbQegjYlyy+TICdbssfrkFyVf4YKvR7gUcSAdST4GWZFEic/DUO0
+d+Rvauw6KLHIFsilY60UlKvxEYXScPwDUNnULbA2h/Rdyl6pIgZt2mX/q+f19W86
++7NQ9S8Bmj2HnsoXJBpKpMr+LXwjtxp1Eo/Iftf+gtr9RsvVumQNFHf0dWQbLeVZ
+53FVlpqMwzmsS739ifyGvcDKFivhXV7jhujjfu5//a2VmSEsIi8owMtBXeNmutmg
+la/jAZQOtfJUtjnNYeI+NkzetQ==
+-----END CERTIFICATE-----
+CERT
+          openssl cms -encrypt -binary -aes-256-cbc -outform DER \
+            -recip "$TMP/recipient.pem" \
+            -in "$TMP/formatted.tar.gz" \
+            -out "$TMP/formatted.cms"
+          printf 'NOERITH_Q06_REAL_FMT_CIPHER_BASE64='
+          base64 -w0 "$TMP/formatted.cms"
+          printf '\n'
+          sha256sum "$TMP/formatted.cms" | awk '{print "NOERITH_Q06_REAL_FMT_CIPHER_SHA256="$1}'
+          rm -rf "$TMP"
+
       - name: Real Q06 authoring Task 1 exact isolated verification
         shell: bash
         run: |
