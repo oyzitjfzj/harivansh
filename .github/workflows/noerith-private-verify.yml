@@ -182,6 +182,19 @@ jobs:
               print(f"NOERITH_ISOLATED_DENIED_LINT={lint}")
           for lint in sorted(set(re.findall(r"\[(clippy::[a-z0-9_]+)\]", text))):
               print(f"NOERITH_ISOLATED_CLIPPY_LINT={lint}")
+          lower = text.lower()
+          for label, marker in (
+              ("DEAD_CODE_UNUSED", "never used"),
+              ("DEAD_CODE_UNREAD", "never read"),
+              ("UNUSED_IMPORT", "unused import"),
+              ("UNUSED_VARIABLE", "unused variable"),
+              ("CLIPPY_DRIVER", "could not compile"),
+              ("LINKER", "linking with"),
+          ):
+              if marker in lower:
+                  print(f"NOERITH_ISOLATED_FAILURE_CLASS={label}")
+          for denied in sorted(set(re.findall(r"-D\s+([a-z][a-z0-9_-]+)", text))):
+              print(f"NOERITH_ISOLATED_DENY_FLAG={denied}")
           PY
           for stage in selftest rustc generate-lockfile fetch metadata fmt check clippy test; do
             case "$stage" in
