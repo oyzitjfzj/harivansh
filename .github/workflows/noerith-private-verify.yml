@@ -113,18 +113,30 @@ jobs:
             python3 - "$verify_log" <<'PY'
           import re, sys
           raw = open(sys.argv[1], encoding="utf-8", errors="replace").read()
-          for code in sorted(set(re.findall(r"error\[(E\d{4})\]", raw))):
+          commands = re.findall(
+              r"^\\+ cargo (generate-lockfile|fetch|metadata|fmt|check|clippy|test)\\b",
+              raw,
+              re.MULTILINE,
+          )
+          if commands:
+              print(
+                  "NOERITH_Q06_REAL_TASK1_ISOLATED_LAST_STAGE="
+                  + commands[-1].upper().replace("-", "_")
+              )
+          for code in sorted(set(re.findall(r"error\\[(E\\d{4})\\]", raw))):
               print(f"NOERITH_Q06_REAL_TASK1_ISOLATED_RUST_ERROR_CODE={code}")
+          for lint in sorted(set(re.findall(r"\\[(clippy::[a-z0-9_]+)\\]", raw))):
+              print(f"NOERITH_Q06_REAL_TASK1_ISOLATED_CLIPPY_LINT={lint}")
           for label, marker in (
-              ("FMT", "cargo fmt"),
-              ("CHECK", "cargo check"),
-              ("CLIPPY", "cargo clippy"),
-              ("TEST", "cargo test"),
-              ("LOCK", "lock"),
-              ("DEPENDENCY", "dependency"),
+              ("FMT_DIFF", "Diff in "),
+              ("UNUSED_IMPORT", "unused import"),
+              ("DEAD_CODE", "dead_code"),
+              ("LOCKFILE", "lock file"),
+              ("MANIFEST", "failed to parse manifest"),
+              ("NETWORK", "failed to download"),
           ):
               if marker in raw:
-                  print(f"NOERITH_Q06_REAL_TASK1_ISOLATED_HINT={label}")
+                  print(f"NOERITH_Q06_REAL_TASK1_ISOLATED_CLASS={label}")
           PY
             rm -f "$verify_log"
             rm -rf "$clean_cwd"
