@@ -33,8 +33,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
-      TARGET_SHA: 8326d21381aa1a68aa7165419eefbe6ef0047acd
-      Q06_TASK4_BINDING_FIELD_RED_TRIGGER: 2026-09-26-real-q06-typed-identities-green
+      TARGET_SHA: 1cc3d8ba5d1c879663d7528f53abd589b01c96ab
+      Q06_TASK4_BINDING_FIELD_RED_TRIGGER: 2026-09-26-real-q06-profile-binding-red
       QUAL_IMAGE: rust@sha256:ff521445a372125ed4f76e1453a1f8098f2d05332d1601d30db1c1f62757e730
     steps:
       - name: Checkout relay only
@@ -57,7 +57,7 @@ jobs:
           export RUSTUP_TOOLCHAIN=1.98.1
           LOG="${RUNNER_TEMP}/noerith-q06-real-task1.log"
           cd "$ROOT"
-          cargo test --manifest-path tools/q06-memory-context-eval/Cargo.toml --test schema_seed --message-format=json >"$LOG" 2>&1
+          cargo test --manifest-path tools/q06-memory-context-eval/Cargo.toml --test schema_seed --test schema_profile --message-format=json >"$LOG" 2>&1
           status=$?
           python3 - "$LOG" <<'PY'
           import json, sys
@@ -142,7 +142,7 @@ jobs:
           cd "$ROOT"
 
           task_log="${RUNNER_TEMP}/noerith-q06-real-task1-exact.log"
-          if cargo test --manifest-path tools/q06-memory-context-eval/Cargo.toml --test schema_seed --locked >"$task_log" 2>&1; then
+          if cargo test --manifest-path tools/q06-memory-context-eval/Cargo.toml --test schema_seed --test schema_profile --locked >"$task_log" 2>&1; then
             echo "NOERITH_Q06_REAL_TASK1_EXACT_TEST=PASS"
           else
             echo "NOERITH_Q06_REAL_TASK1_EXACT_TEST=FAIL"
