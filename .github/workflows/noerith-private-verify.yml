@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
-      TARGET_SHA: 1bd8233f64a85a23d9da53c4150c5cfbef55201a
+      TARGET_SHA: bc5c78108392a3fc570a2d18ddbf36f2a41abec7
       Q06_TASK3_SUBSTITUTION_RED_TRIGGER: 2026-09-25-a
       QUAL_IMAGE: rust@sha256:ff521445a372125ed4f76e1453a1f8098f2d05332d1601d30db1c1f62757e730
     steps:
