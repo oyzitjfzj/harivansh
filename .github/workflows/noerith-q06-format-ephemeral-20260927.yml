@@ -1,0 +1,53 @@
+name: NOERITH Q06 ephemeral private rustfmt handoff 20260927
+
+on:
+  push:
+    branches:
+      - "build/noerith-private-verify-20260923"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: noerith-q06-format-ephemeral-20260927
+  cancel-in-progress: false
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      TARGET_SHA: a605b1ddd6d9ff28411cdb24a9f48cd8e78c7475
+    steps:
+      - name: Checkout relay only
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Exact private NOERITH checkout
+        shell: bash
+        env:
+          PRIVATE_READ_TOKEN: ${{ secrets.PRIVATE_READ_TOKEN }}
+        run: bash scripts/checkout-noerith-private.sh
+
+      - name: Format private Q06 crate and encrypt to ephemeral recipient
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          rustup toolchain install 1.98.1 --profile minimal --component rustfmt --no-self-update >/dev/null 2>&1
+          export RUSTUP_TOOLCHAIN=1.98.1
+          TMP="$(mktemp -d)"
+          cp -R "$ROOT/tools/q06-memory-context-eval" "$TMP/formatted"
+          cargo fmt --manifest-path "$TMP/formatted/Cargo.toml"
+          tar -C "$TMP/formatted" -czf "$TMP/formatted.tar.gz" src tests
+          printf '%s' 'LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUVRVENDQXFtZ0F3SUJBZ0lVYkpaUUtJeUlBUndYWHBvRElzVjU3VkVPQzJJd0RRWUpLb1pJaHZjTkFRRUwKQlFBd01ERXVNQ3dHQTFVRUF3d2xibTlsY21sMGFDMXhNRFl0Wm05eWJXRjBMV1Z3YUdWdFpYSmhiQzB5TURJMgpNRGt5TnpBZUZ3MHlOakE1TWpZeU1UQTBOVEZhRncweU5qQTVNamN5TVRBME5URmFNREF4TGpBc0JnTlZCQU1NCkpXNXZaWEpwZEdndGNUQTJMV1p2Y20xaGRDMWxjR2hsYldWeVlXd3RNakF5TmpBNU1qY3dnZ0dpTUEwR0NTcUcKU0liM0RRRUJBUVVBQTRJQmp3QXdnZ0dLQW9JQmdRQ1hDTGFYTkRKMWk1Ni9hQnlUTjB2R21uR2J4TVlvMmdxcgpkWFdEdHVLbFY4U0JaRFRvYXo0QThKSklsTmdBTEJZcW5salF3QjRVMUhQdWgvcThJMzdVdlEwZWdNeEwwZGkzCjllS3hKdE1aMElFQUtQbmQvR1QyRHM2bmZJMzRoNVJYcC9DdGZWU0ZCSI80c2duZHJNSjVOYU5QWVM2VVZ3Z3IKQXFRM2RZNDJaQWYrZmpJUjlnQUUySU1uWEkwMTlDM1I2dVBTV2U4cG1vdWV6RWxKVHNXTXFWR0Q1REl1SVZlegowbGpqU3V6RFFhdDlmMldzVDlzSSs0dmRWTHFkSHBBbm5idmMwYTRuZEpTVTBTS0R0Mm5XdW9nNDFUbWh0eGJzCnBpbjNDQmZQVHpqbWZIS3pLaUdMVS84SDJQUStpcFo2ajVCTjFCcUlnSzFxdUptOUpRNG12YUlVK3pDR0FpeXUKSDlPcTBHdlFPanA5LzFybFRSaTRQMHl1bGlka0wyVDIxOEswQzdZNTRwZXZZYlVhWFh2K1FtRU50dWI0WFpKawp3bUg4L2xnc09Fazd3QTl0bmYwRDhiVUpIVU9aZ1RHRExYcENuN1pXa3ZpMk9JUjJ0ck5kSzBCSG9tQ3p2aEhmCkhVV0dWM3JjYVZRSFVkVG1tWjd5SGduNTRNWThvTnNDQXdFQUFhTlRNRkV3SFFZRFZSME9CQllFRkh1Ylk1QUoKd1VHZ0RZa1BHbGlKUFo0RHdIc2xNQjhHQTFVZEl3UVlNQmFBRkh1Ylk1QUp3VUdnRFlrUEdsaUpQWjREd0hzbApNQThHQTFVZEV3RUIvd1FGTUFNQkFmOHdEUVlKS29aSWh2Y05BUUVMQlFBRGdnR0JBRmFMbWF2eXVRWEdXQm1qCkM5Sy9RRno4YkpZdklCL0g1WEJyWmt4M0tFQklzUnFKRUloZklCYzhHZitVNjhEV1JmeC9nMTIzRitzYTYzdHYKWTMvZHB3TldkQmthWXduaURoYkFwOG1TWkEzbG1ZcVBGazV5SURNTGxlcmxJUVBGQW9sd3lNUyt2TnBLU0pVMApWVHhlTFVOeGJpRlZ6TWlTVHp6R2lGclpNUnhNNUF6cS9vZ3RTS2kyY05qeCtSeldjR0VjcVY1eVFpZ3JaTDdBCkVoUkcrWlpMQ3k3RC94Qnp6bUwvazJpLy83cWlQcmpqb0hoSlNWOGQrQjg5UWJlWE9zekdNQW93TjhTOHNpTEQKUGZoWFVMNmVzRW1NTlNOZWJxNEE4bXN5b0pKWlNUZjRSZTE1SEZrbzdNY21kVFNwaWZ2U01GR1lDdkxuTUlPRwpwTVZTYjlOOEtwZUhqK20wYUN6eDA5STRHZFdseXFscndjZjV3Y2VXOWJGWmwxTkN0RDB5Wi9YOE45aVl6d1V3Ck0wVjVablByaHdBYlV1K0VXZmNWd2xqeDdPa2IrWTBWUWp1bHZpSHFKWmFBU2I4UFNXYW94Yk5lVnFJQlVoc3cKUlZGdEFUQXJPWHRBcnZQaEtDOWFXU1JRUDJGTFVjSDFEWExuSGt1WXIyYU03WkNWWnc9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==' | base64 -d > "$TMP/recipient.pem"
+          openssl cms -encrypt -binary -aes-256-cbc -outform DER \
+            -recip "$TMP/recipient.pem" \
+            -in "$TMP/formatted.tar.gz" \
+            -out "$TMP/formatted.cms"
+          printf 'NOERITH_Q06_FMT2_CIPHER_BASE64='
+          base64 -w0 "$TMP/formatted.cms"
+          printf '\n'
+          sha256sum "$TMP/formatted.cms" | awk '{print "NOERITH_Q06_FMT2_CIPHER_SHA256="$1}'
+          rm -rf "$TMP"
