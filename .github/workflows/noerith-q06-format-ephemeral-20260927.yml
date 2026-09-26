@@ -74,8 +74,15 @@ jobs:
             -recip "$TMP/recipient.pem" \
             -in "$TMP/formatted.tar.gz" \
             -out "$TMP/formatted.cms"
-          printf 'NOERITH_Q06_FMT2_CIPHER_BASE64='
-          base64 -w0 "$TMP/formatted.cms"
-          printf '\n'
-          sha256sum "$TMP/formatted.cms" | awk '{print "NOERITH_Q06_FMT2_CIPHER_SHA256="$1}'
+          cp "$TMP/formatted.cms" "${RUNNER_TEMP}/q06-formatted.cms"
+          sha256sum "${RUNNER_TEMP}/q06-formatted.cms" | awk '{print "NOERITH_Q06_FMT2_CIPHER_SHA256="$1}'
           rm -rf "$TMP"
+
+      - name: Upload encrypted rustfmt handoff
+        uses: actions/upload-artifact@v4
+        with:
+          name: q06-formatted-cms-20260927
+          path: ${{ runner.temp }}/q06-formatted.cms
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
