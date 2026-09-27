@@ -1,0 +1,88 @@
+name: NOERITH Q06 Task 2 ephemeral format handoff 20260927
+
+on:
+  push:
+    branches:
+      - "build/noerith-private-verify-20260923"
+    paths:
+      - ".github/workflows/noerith-q06-task2-format-handoff-20260927.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      TARGET_SHA: 1de43efa0d964eb6502dccb5e5186e2fc547ce78
+    steps:
+      - name: Checkout relay only
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Validate relay privacy contract
+        shell: bash
+        run: bash tests/test-noerith-relay-contract.sh
+
+      - name: Exact private NOERITH checkout
+        shell: bash
+        env:
+          PRIVATE_READ_TOKEN: ${{ secrets.PRIVATE_READ_TOKEN }}
+        run: bash scripts/checkout-noerith-private.sh
+
+      - name: Format private Q06 crate and encrypt handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          rustup toolchain install 1.98.1 --profile minimal --component rustfmt --no-self-update >/dev/null 2>&1
+          export RUSTUP_TOOLCHAIN=1.98.1
+          TMP="$(mktemp -d)"
+          cp -R "$ROOT/tools/q06-memory-context-eval" "$TMP/formatted"
+          cargo fmt --manifest-path "$TMP/formatted/Cargo.toml" >/dev/null
+          tar -C "$TMP/formatted" -czf "$TMP/formatted.tar.gz" src tests
+          cat > "$TMP/recipient.pem" <<'CERT'
+          -----BEGIN CERTIFICATE-----
+          MIIEQzCCAqugAwIBAgIULl3baMozHhj8Riyycwgm6mKsuKIwDQYJKoZIhvcNAQEL
+          BQAwMTEvMC0GA1UEAwwmbm9lcml0aC1xMDYtZm9ybWF0LWVwaGVtZXJhbC0yMDI2
+          MDkyN2IwHhcNMjYwOTI3MDU1MTIwWhcNMjYwOTI4MDU1MTIwWjAxMS8wLQYDVQQD
+          DCZub2VyaXRoLXEwNi1mb3JtYXQtZXBoZW1lcmFsLTIwMjYwOTI3YjCCAaIwDQYJ
+          KoZIhvcNAQEBBQADggGPADCCAYoCggGBAM+Fv0Tt57o3bE2RXB0iu1spfnDx9imI
+          zcYSnVivwb/JsQOsfVRHeFNblJvziDSDx/8eUY31WIA5fu1Ss+W2eMgvdA69QH7b
+          p4TlzZbYh6UsNWyFnAPvgz3Vwi9cyL2ffXMwgk9YjJ6G/oQ9R8YFz8kBmW3AoNBq
+          ONDv1QMmhwSRvUhUxBN7RF+6VTaVXRZ1Pt/j3ckM8u11o0AgjAyP8bLMim2uqIJ7
+          FJwKPBw1dl6nAW3dgCHTizU24r7fOI4RE/cMqh0ArO+W1uecQ2Y58ppeaQE26Dfe
+          OXtN9QLO4evGY04wgMoAJnXlxtjGznD27jvxQFAik7nMVUKPQJSXmMN9BGa1GCp8
+          UT0FldOk9O4dUeXQiXkS176OW1+nk+56SjruCm++d0KiE0MUlS0ZqRFxQfvdkiXX
+          Uy/uYy3q6x8e6w/BzYX1E6O4NI9SR6R586aLqK4eJgKtaq7ZezpkjYujaqSzSkWJ
+          LkDdXA5BEIoMMbOu7djg7rziSvX6rEbVdQIDAQABo1MwUTAdBgNVHQ4EFgQUNy1+
+          c+HJcTcHM/dVA/qaCLxg1P4wHwYDVR0jBBgwFoAUNy1+c+HJcTcHM/dVA/qaCLxg
+          1P4wDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAYEAT3T3sdXFo9te
+          mVVwTWD1ISEr5CMz4wj0z1l2EXJt4lakr/blYlxkmGk9WSJafosPniO5eWKkRVXE
+          LpwNYNyAm/S5wUGxryA9zSzmrryIR5mjSVzZxaOcTvaRrmF781HuST70PeU6djjg
+          ITLPwiJS4G8arrInobbUYzxSXUutTmOpk4d11yWGWlSIuqo0c0HrNO4421IDx4eN
+          T8HLX3Y0qQMBH0yVi83NOFLM5IpPxN8V8JN8t+0musEXrilOThzcbAHcDYQb80Dp
+          5UZu1PukaPHluqTuezvziOIuZNzm9nZ1ciAH22mBsEd5RcKiPQ3tGSN2AaBOEaMB
+          X6AMkUxIqXoKmeBleX5BwQqybCZ6RZbIpYrjSv9f731OCRsxm3QdYpkzy8xWKLOh
+          FktGkOY/PFkGssJ4P8aMFA4fh3tcuC0QTQKuXctVx4kbLKaPlU9NkVfPAFXm05J/
+          DxPC6pOSf7b6IYPtHWNKzbZwVWQyFy17pT2u2/YCwpQJK3f/V3nX
+          -----END CERTIFICATE-----
+          CERT
+          openssl x509 -in "$TMP/recipient.pem" -noout >/dev/null
+          openssl cms -encrypt -binary -aes-256-cbc -outform DER \
+            -recip "$TMP/recipient.pem" \
+            -in "$TMP/formatted.tar.gz" \
+            -out "${RUNNER_TEMP}/q06-task2-formatted.cms"
+          sha256sum "${RUNNER_TEMP}/q06-task2-formatted.cms" | awk '{print "NOERITH_Q06_TASK2_FORMAT_CIPHER_SHA256="$1}'
+          rm -rf "$TMP"
+
+      - name: Upload encrypted handoff
+        uses: actions/upload-artifact@v4
+        with:
+          name: q06-task2-formatted-cms-20260927
+          path: ${{ runner.temp }}/q06-task2-formatted.cms
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
