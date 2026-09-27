@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
-      TARGET_SHA: 1de43efa0d964eb6502dccb5e5186e2fc547ce78
+      TARGET_SHA: d1da80ec7be8b17cca9d9a98a94cae46e0151db7
       Q06_MANIFEST: tools/q06-memory-context-eval/Cargo.toml
     steps:
       - name: Checkout relay only
