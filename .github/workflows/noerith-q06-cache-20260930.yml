@@ -1,0 +1,57 @@
+name: NOERITH disposable third-party registry cache
+
+on:
+  push:
+    branches: ['build/noerith-private-verify-20260923']
+    paths: ['.github/workflows/noerith-q06-cache-20260930.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  cache:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      TARGET_SHA: d1da80ec7be8b17cca9d9a98a94cae46e0151db7
+    steps:
+      - name: Checkout exact source-free control revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Validate relay privacy contract
+        shell: bash
+        run: bash tests/test-noerith-relay-contract.sh
+      - name: Exact ephemeral read-only private checkout
+        shell: bash
+        env:
+          PRIVATE_READ_TOKEN: ${{ secrets.PRIVATE_READ_TOKEN }}
+        run: bash scripts/checkout-noerith-private.sh
+      - name: Fetch public third-party packages only
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          CACHE="${RUNNER_TEMP}/third-party-cargo-cache"
+          LOG="${RUNNER_TEMP}/third-party-fetch.log"
+          trap 'rm -rf "$ROOT" "$CACHE"; rm -f "$LOG"' EXIT
+          rustup toolchain install 1.98.1 --profile minimal --no-self-update >/dev/null 2>&1
+          test ! -e "$CACHE"
+          export CARGO_HOME="$CACHE"
+          if ! cargo +1.98.1 fetch --manifest-path "$ROOT/tools/q06-memory-context-eval/Cargo.toml" --locked >"$LOG" 2>&1; then
+            echo NOERITH_THIRDPARTY_FETCH=FAIL
+            exit 1
+          fi
+          test -d "$CACHE/registry"
+          tar -C "$CACHE" -czf "${RUNNER_TEMP}/third-party-registry.tar.gz" registry
+          sha256sum "${RUNNER_TEMP}/third-party-registry.tar.gz" | awk '{print "NOERITH_THIRDPARTY_ARCHIVE_SHA256="$1}'
+          echo NOERITH_THIRDPARTY_FETCH=PASS
+      - name: Upload only public registry bytes
+        uses: actions/upload-artifact@v4
+        with:
+          name: third-party-registry-cache-20260930
+          path: ${{ runner.temp }}/third-party-registry.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
