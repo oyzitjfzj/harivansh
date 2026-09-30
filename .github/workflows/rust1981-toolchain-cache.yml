@@ -1,3 +1,4 @@
+# Restore source-free exact verification toolchain: 2026-09-30.
 name: Rust 1.98.1 disposable toolchain cache
 
 on:
