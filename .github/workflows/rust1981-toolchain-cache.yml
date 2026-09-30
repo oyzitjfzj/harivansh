@@ -1,4 +1,4 @@
-# Restore source-free exact verification toolchain: 2026-09-30.
+# Source-free exact toolchain bootstrap, transport parts below 32 MiB: 2026-09-30.
 name: Rust 1.98.1 disposable toolchain cache
 
 on:
@@ -32,11 +32,12 @@ jobs:
           ARCHIVE="$RUNNER_TEMP/rust-1.98.1-x86_64-unknown-linux-gnu.tar.gz"
           tar -C "$PARENT" -czf "$ARCHIVE" "$TOOLCHAIN_DIR"
           sha256sum "$ARCHIVE" | tee "$RUNNER_TEMP/rust-1.98.1-x86_64-unknown-linux-gnu.tar.gz.sha256"
-          split -b 70000000 -d -a 2 "$ARCHIVE" "$RUNNER_TEMP/rust-1.98.1.part"
+          split -b 28000000 -d -a 2 "$ARCHIVE" "$RUNNER_TEMP/rust-1.98.1.part"
           test -f "$RUNNER_TEMP/rust-1.98.1.part00"
           test -f "$RUNNER_TEMP/rust-1.98.1.part01"
           test -f "$RUNNER_TEMP/rust-1.98.1.part02"
           test -f "$RUNNER_TEMP/rust-1.98.1.part03"
+          test -f "$RUNNER_TEMP/rust-1.98.1.part07"
           wc -c "$RUNNER_TEMP"/rust-1.98.1.part*
 
       - name: Upload part 00
@@ -71,6 +72,42 @@ jobs:
         with:
           name: rust1981-part03
           path: ${{ runner.temp }}/rust-1.98.1.part03
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      - name: Upload part 04
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust1981-part04
+          path: ${{ runner.temp }}/rust-1.98.1.part04
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      - name: Upload part 05
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust1981-part05
+          path: ${{ runner.temp }}/rust-1.98.1.part05
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      - name: Upload part 06
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust1981-part06
+          path: ${{ runner.temp }}/rust-1.98.1.part06
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      - name: Upload part 07
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust1981-part07
+          path: ${{ runner.temp }}/rust-1.98.1.part07
           if-no-files-found: error
           retention-days: 1
           compression-level: 0
