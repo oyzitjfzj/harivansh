@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
-      TARGET_SHA: d1da80ec7be8b17cca9d9a98a94cae46e0151db7
+      TARGET_SHA: b07b04a671a584a5a79c2e18ef32519f985bf475
       Q06_MANIFEST: tools/q06-memory-context-eval/Cargo.toml
     steps:
       - name: Checkout relay only
@@ -106,7 +106,7 @@ jobs:
           print(f"NOERITH_Q06_TASK2_BOUNDED_FAILED_COUNT={len(failed)}")
           for name in failed:
               print("NOERITH_Q06_TASK2_BOUNDED_FAILED_SHA256=" + hashlib.sha256(name.encode()).hexdigest())
-          for marker in ("Q06_BOUNDED_CORRECTION", "Q06_BOUNDED_LIFECYCLE", "Q06_BOUNDED_TAINT"):
+          for marker in ("Q06_BOUNDED_CORRECTION", "Q06_BOUNDED_LIFECYCLE", "Q06_BOUNDED_TAINT", "Q06 mixed bound:"):
               match = re.search(rf"{marker}[^\n]*", raw)
               if match:
                   safe = re.sub(r"[^A-Za-z0-9_= -]", "", match.group(0))
@@ -165,6 +165,23 @@ jobs:
           rm -f "$LOG"
           exit "$status"
 
+      - name: Real compiled transition mutants
+        shell: bash
+        run: |
+          set +e
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          LOG="${RUNNER_TEMP}/q06-task2-mutants.log"
+          RUSTUP_TOOLCHAIN=1.98.1 python3 -I "$ROOT/tools/verify_q06_kernel_mutants.py" --offline >"$LOG" 2>&1
+          status=$?
+          if [[ "$status" -eq 0 ]] && grep -Fxq 'Q06_MUTANTS compiled_kills=6/6' "$LOG"; then
+            echo "NOERITH_Q06_TASK2_REAL_MUTANTS=PASS compiled_kills=6/6"
+          else
+            echo "NOERITH_Q06_TASK2_REAL_MUTANTS=FAIL"
+            status=1
+          fi
+          rm -f "$LOG"
+          exit "$status"
+
       - name: Isolated pinned-crate verification
         shell: bash
         run: |
@@ -174,7 +191,7 @@ jobs:
           CLEAN="$(mktemp -d)"
           (
             cd "$CLEAN"
-            RUSTUP_TOOLCHAIN=1.98.1 python3 -I "$ROOT/tools/verify_isolated_pinned_crate.py" tools/q06-memory-context-eval
+            RUSTUP_TOOLCHAIN=1.98.1 python3 -I "$ROOT/tools/verify_isolated_pinned_crate_hermetic.py" tools/q06-memory-context-eval
           ) >"$LOG" 2>&1
           status=$?
           python3 - "$LOG" <<'PY'
