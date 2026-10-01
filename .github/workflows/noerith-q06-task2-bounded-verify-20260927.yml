@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
-      TARGET_SHA: b393479edcbe8e04c8984acdc553c831fb93c97c
+      TARGET_SHA: 93cfe2d1db20d512ec5e76ba55846a666608497a
       Q06_MANIFEST: tools/q06-memory-context-eval/Cargo.toml
     steps:
       - name: Checkout relay only
@@ -200,8 +200,8 @@ jobs:
           LOG="${RUNNER_TEMP}/q06-task2-mutants.log"
           RUSTUP_TOOLCHAIN=1.98.1 python3 -I "$ROOT/tools/verify_q06_kernel_mutants.py" --offline >"$LOG" 2>&1
           status=$?
-          if [[ "$status" -eq 0 ]] && grep -Fxq 'Q06_MUTANTS compiled_kills=22/22' "$LOG"; then
-            echo "NOERITH_Q06_TASK3_REAL_MUTANTS=PASS compiled_kills=22/22"
+          if [[ "$status" -eq 0 ]] && grep -Fxq 'Q06_MUTANTS compiled_kills=24/24' "$LOG"; then
+            echo "NOERITH_Q06_TASK3_REAL_MUTANTS=PASS compiled_kills=24/24"
           else
             echo "NOERITH_Q06_TASK3_REAL_MUTANTS=FAIL"
             status=1
