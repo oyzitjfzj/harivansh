@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
-      TARGET_SHA: f69659a734b6d5587225e7f6eb9de1574b2b7148
+      TARGET_SHA: f65a9b54c3e70db77f48fb37d77329c5f005d1cb
       Q06_MANIFEST: tools/q06-memory-context-eval/Cargo.toml
     steps:
       - name: Checkout relay only
@@ -224,6 +224,18 @@ jobs:
             echo "NOERITH_Q06_TASK4_REAL_MUTANTS=FAIL"
             status=1
           fi
+          rm -f "$LOG"
+          exit "$status"
+
+      - name: Reviewed fixture copy boundary
+        shell: bash
+        run: |
+          set +e
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          LOG="${RUNNER_TEMP}/q06-task4-fixture-copy.log"
+          python3 -I -m unittest discover -s "$ROOT/tools/tests" -p test_q06_isolated_fixture_copy.py >"$LOG" 2>&1
+          status=$?
+          echo "NOERITH_Q06_TASK4_FIXTURE_COPY_STATUS=$status"
           rm -f "$LOG"
           exit "$status"
 
