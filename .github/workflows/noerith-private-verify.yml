@@ -31,7 +31,7 @@ jobs:
   verify:
     needs: relay-self-test
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       TARGET_SHA: ba101bd866378122e20ae4fdd728342b529b45c3
     steps:
@@ -46,51 +46,72 @@ jobs:
           PRIVATE_READ_TOKEN: ${{ secrets.PRIVATE_READ_TOKEN }}
         run: bash scripts/checkout-noerith-private.sh
 
-      - name: Q06 Task5 focused validator GREEN
+      - name: Q06 Task5 full pinned qualification gates
         shell: bash
         run: |
           set -euo pipefail
           ROOT="${RUNNER_TEMP}/noerith-private-source"
-          rustup toolchain install 1.98.1 --profile minimal --no-self-update >/dev/null 2>&1
+          LOG="${RUNNER_TEMP}/q06-task5-qualification.log"
+          trap 'rm -f "$LOG"; rm -rf "$ROOT"' EXIT
+
+          rustup toolchain install 1.98.1 --profile minimal --component rustfmt --component clippy --no-self-update >/dev/null 2>&1
           export RUSTUP_TOOLCHAIN=1.98.1
-          LOG="${RUNNER_TEMP}/q06-task5-focused.jsonl"
-          set +e
-          (
-            cd "$ROOT"
-            cargo test --manifest-path tools/q06-memory-context-eval/Cargo.toml \
-              --test validator --locked --message-format=json
-          ) >"$LOG" 2>&1
-          status=$?
-          set -e
-          python3 - "$LOG" "$status" <<'PY'
+          echo "NOERITH_TASK5_RUSTC=$(rustc --version | awk '{print $2}')"
+          echo "NOERITH_TASK5_CARGO=$(cargo --version | awk '{print $2}')"
+
+          classify_failure() {
+            python3 - "$LOG" <<'PY'
           import hashlib, json, re, sys
-          path, status_text = sys.argv[1], sys.argv[2]
-          status = int(status_text)
-          raw = open(path, encoding="utf-8", errors="replace").read()
+          path = sys.argv[1]
           codes = set()
-          for line in raw.splitlines():
-              try:
-                  event = json.loads(line)
-              except json.JSONDecodeError:
-                  continue
-              if event.get("reason") != "compiler-message":
-                  continue
-              message = event.get("message") or {}
-              if message.get("level") != "error":
-                  continue
-              code = (message.get("code") or {}).get("code")
-              if code:
-                  codes.add(code)
-          failed = sorted(set(re.findall(r"^test ([^ ]+) \.\.\. FAILED$", raw, re.MULTILINE)))
-          print(f"NOERITH_TASK5_FOCUSED_STATUS={status}")
-          print(f"NOERITH_TASK5_FOCUSED_FAILED_TEST_COUNT={len(failed)}")
+          failed = set()
+          with open(path, encoding="utf-8", errors="replace") as handle:
+              for line in handle:
+                  try:
+                      event = json.loads(line)
+                  except json.JSONDecodeError:
+                      event = None
+                  if isinstance(event, dict) and event.get("reason") == "compiler-message":
+                      message = event.get("message") or {}
+                      if message.get("level") == "error":
+                          code = (message.get("code") or {}).get("code")
+                          if code:
+                              codes.add(code)
+                  match = re.match(r"^test (.+) \.\.\. FAILED\s*$", line)
+                  if match:
+                      failed.add(hashlib.sha256(match.group(1).encode()).hexdigest())
           for code in sorted(codes):
-              print(f"NOERITH_TASK5_FOCUSED_RUST_ERROR_CODE={code}")
-          for name in failed:
-              print("NOERITH_TASK5_FOCUSED_FAILED_TEST_SHA256=" + hashlib.sha256(name.encode()).hexdigest())
-          print("NOERITH_TASK5_FOCUSED_GREEN=" + ("PASS" if status == 0 else "FAIL"))
-          if status != 0:
-              raise SystemExit(1)
+              print(f"NOERITH_TASK5_RUST_ERROR_CODE={code}")
+          for digest in sorted(failed):
+              print(f"NOERITH_TASK5_FAILED_TEST_NAME_SHA256={digest}")
           PY
-          rm -f "$LOG"
-          rm -rf "$ROOT"
+          }
+
+          run_gate() {
+            label="$1"
+            shift
+            : >"$LOG"
+            set +e
+            (cd "$ROOT" && "$@") >"$LOG" 2>&1
+            status=$?
+            set -e
+            if [ "$status" -ne 0 ]; then
+              echo "NOERITH_TASK5_${label}=FAIL"
+              echo "NOERITH_TASK5_${label}_STATUS=${status}"
+              classify_failure
+              exit 1
+            fi
+            echo "NOERITH_TASK5_${label}=PASS"
+          }
+
+          run_gate FOCUSED \
+            cargo test --manifest-path tools/q06-memory-context-eval/Cargo.toml --test validator --locked --message-format=json
+          run_gate FULL_TEST \
+            cargo test --manifest-path tools/q06-memory-context-eval/Cargo.toml --locked --message-format=json
+          run_gate FMT \
+            cargo fmt --manifest-path tools/q06-memory-context-eval/Cargo.toml -- --check
+          run_gate CLIPPY \
+            cargo clippy --manifest-path tools/q06-memory-context-eval/Cargo.toml --all-targets --locked --message-format=json -- -D warnings
+
+          echo "NOERITH_TASK5_EXACT_SHA=${TARGET_SHA}"
+          echo "NOERITH_TASK5_QUALIFICATION=PASS"
