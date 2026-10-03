@@ -1,4 +1,4 @@
-name: NOERITH Q06 Task 5 clippy locator
+name: NOERITH Q06 Task 5 independent validator qualification
 
 on:
   push:
@@ -10,52 +10,165 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: noerith-q06-task5-independent-validator-20261003
+  cancel-in-progress: false
+
 jobs:
-  locate:
+  relay-self-test:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate relay privacy contract
+        run: bash tests/test-noerith-relay-contract.sh
+
+  verify:
+    needs: relay-self-test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     env:
-      TARGET_SHA: c525f5f7a0bdf0984cecf543ce6ba41f6a494abd
+      TARGET_SHA: 1b84e413b4286f2634845c3702d720c0967797e9
       Q06_MANIFEST: tools/q06-memory-context-eval/Cargo.toml
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+
       - name: Exact private NOERITH checkout
         env:
           PRIVATE_READ_TOKEN: ${{ secrets.PRIVATE_READ_TOKEN }}
         run: bash scripts/checkout-noerith-private.sh
-      - name: Locate strict-clippy diagnostics without source disclosure
+
+      - name: Install exact Rust toolchain
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.98.1 --profile minimal --component rustfmt,clippy --no-self-update >/dev/null
+          rustc +1.98.1 --version
+          cargo +1.98.1 --version
+
+      - name: Format check
+        run: |
+          set +e
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          cargo +1.98.1 fmt --manifest-path "$ROOT/$Q06_MANIFEST" -- --check >/dev/null 2>&1
+          status=$?
+          echo "NOERITH_Q06_TASK5_FMT_STATUS=$status"
+          exit "$status"
+
+      - name: Independent semantic validator tests
+        run: |
+          set +e
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          LOG="${RUNNER_TEMP}/validator.log"
+          cargo +1.98.1 test --manifest-path "$ROOT/$Q06_MANIFEST" --test validator --locked >"$LOG" 2>&1
+          status=$?
+          python3 - "$LOG" <<'PY'
+          import re, sys
+          raw=open(sys.argv[1],encoding='utf-8',errors='replace').read()
+          print('NOERITH_Q06_TASK5_VALIDATOR_PASSED_COUNT=' + str(sum(map(int,re.findall(r'test result: ok\. (\d+) passed;',raw)))))
+          print('NOERITH_Q06_TASK5_VALIDATOR_FAILED_COUNT=' + str(len(re.findall(r'^test [^ ]+ \.\.\. FAILED$',raw,re.M))))
+          PY
+          rm -f "$LOG"
+          echo "NOERITH_Q06_TASK5_VALIDATOR_STATUS=$status"
+          exit "$status"
+
+      - name: Task 1-4 regression suites
+        run: |
+          set +e
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          LOG="${RUNNER_TEMP}/regressions.log"
+          cargo +1.98.1 test --manifest-path "$ROOT/$Q06_MANIFEST" --test kernel --test kernel_bounded --test oracle --test compiler --test timeline --locked >"$LOG" 2>&1
+          status=$?
+          python3 - "$LOG" <<'PY'
+          import re, sys
+          raw=open(sys.argv[1],encoding='utf-8',errors='replace').read()
+          print('NOERITH_Q06_TASK5_REGRESSION_PASSED_COUNT=' + str(sum(map(int,re.findall(r'test result: ok\. (\d+) passed;',raw)))))
+          print('NOERITH_Q06_TASK5_REGRESSION_FAILED_COUNT=' + str(len(re.findall(r'^test [^ ]+ \.\.\. FAILED$',raw,re.M))))
+          PY
+          rm -f "$LOG"
+          echo "NOERITH_Q06_TASK5_REGRESSION_STATUS=$status"
+          exit "$status"
+
+      - name: Full standalone Q06 crate
+        run: |
+          set +e
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          LOG="${RUNNER_TEMP}/full.log"
+          cargo +1.98.1 test --manifest-path "$ROOT/$Q06_MANIFEST" --locked >"$LOG" 2>&1
+          status=$?
+          python3 - "$LOG" <<'PY'
+          import re, sys
+          raw=open(sys.argv[1],encoding='utf-8',errors='replace').read()
+          print('NOERITH_Q06_TASK5_FULL_PASSED_COUNT=' + str(sum(map(int,re.findall(r'test result: ok\. (\d+) passed;',raw)))))
+          print('NOERITH_Q06_TASK5_FULL_FAILED_COUNT=' + str(len(re.findall(r'^test [^ ]+ \.\.\. FAILED$',raw,re.M))))
+          PY
+          rm -f "$LOG"
+          echo "NOERITH_Q06_TASK5_FULL_STATUS=$status"
+          exit "$status"
+
+      - name: Strict clippy
+        run: |
+          set +e
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          cargo +1.98.1 clippy --manifest-path "$ROOT/$Q06_MANIFEST" --all-targets --locked -- -D warnings >/dev/null 2>&1
+          status=$?
+          echo "NOERITH_Q06_TASK5_CLIPPY_STATUS=$status"
+          exit "$status"
+
+      - name: Real compiled transition mutants
+        run: |
+          set +e
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          LOG="${RUNNER_TEMP}/mutants.log"
+          RUSTUP_TOOLCHAIN=1.98.1 python3 -I "$ROOT/tools/verify_q06_kernel_mutants.py" --offline >"$LOG" 2>&1
+          status=$?
+          if [[ "$status" -eq 0 ]] && grep -Fxq 'Q06_MUTANTS compiled_kills=39/39' "$LOG"; then
+            echo "NOERITH_Q06_TASK5_REAL_MUTANTS=PASS compiled_kills=39/39"
+          else
+            echo "NOERITH_Q06_TASK5_REAL_MUTANTS=FAIL"
+            status=1
+          fi
+          rm -f "$LOG"
+          exit "$status"
+
+      - name: Reviewed fixture copy boundary
+        run: |
+          set +e
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          python3 -I -m unittest discover -s "$ROOT/tools/tests" -p test_q06_isolated_fixture_copy.py >/dev/null 2>&1
+          status=$?
+          echo "NOERITH_Q06_TASK5_FIXTURE_COPY_STATUS=$status"
+          exit "$status"
+
+      - name: Isolated pinned-crate verification
+        run: |
+          set +e
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          LOG="${RUNNER_TEMP}/isolated.log"
+          CLEAN="$(mktemp -d)"
+          (cd "$CLEAN" && RUSTUP_TOOLCHAIN=1.98.1 python3 -I "$ROOT/tools/verify_isolated_pinned_crate_hermetic.py" tools/q06-memory-context-eval) >"$LOG" 2>&1
+          status=$?
+          python3 - "$LOG" <<'PY'
+          import sys
+          raw=open(sys.argv[1],encoding='utf-8',errors='replace').read()
+          for stage,pattern in [('selftest','isolated verifier contract self-tests passed'),('rustc','+ rustc --version'),('fmt','+ cargo fmt '),('check','+ cargo check '),('clippy','+ cargo clippy '),('test','+ cargo test ')]:
+              print(f'NOERITH_Q06_TASK5_ISOLATED_REACHED_{stage}={1 if pattern in raw else 0}')
+          PY
+          rm -f "$LOG"
+          rm -rf "$CLEAN"
+          echo "NOERITH_Q06_TASK5_ISOLATED_STATUS=$status"
+          exit "$status"
+
+      - name: Private checkout stayed clean
         run: |
           set -euo pipefail
           ROOT="${RUNNER_TEMP}/noerith-private-source"
-          rustup toolchain install 1.98.1 --profile minimal --component clippy --no-self-update >/dev/null
-          LOG="${RUNNER_TEMP}/clippy.jsonl"
-          set +e
-          cargo +1.98.1 clippy --manifest-path "$ROOT/$Q06_MANIFEST" --all-targets --locked --message-format=json -- -D warnings >"$LOG" 2>&1
-          status=$?
-          set -e
-          python3 - "$LOG" "$ROOT" "$status" <<'PY'
-          import json, sys
-          log, root, status = sys.argv[1], sys.argv[2], sys.argv[3]
-          seen=set()
-          for line in open(log,encoding='utf-8',errors='replace'):
-              try: event=json.loads(line)
-              except json.JSONDecodeError: continue
-              if event.get('reason')!='compiler-message': continue
-              msg=event.get('message') or {}
-              if msg.get('level') not in ('error','warning'): continue
-              code=(msg.get('code') or {}).get('code') or 'NO_CODE'
-              spans=msg.get('spans') or []
-              primary=next((s for s in spans if s.get('is_primary')),spans[0] if spans else {})
-              path=primary.get('file_name','UNKNOWN')
-              if path.startswith(root+'/'): path=path[len(root)+1:]
-              row=(code,path,primary.get('line_start',0),primary.get('line_end',0))
-              if row not in seen:
-                  seen.add(row)
-                  print('NOERITH_Q06_TASK5_CLIPPY_LOC='+'|'.join(map(str,row)))
-          print(f'NOERITH_Q06_TASK5_CLIPPY_LOC_COUNT={len(seen)}')
-          print(f'NOERITH_Q06_TASK5_CLIPPY_EXIT={status}')
-          PY
-          rm -f "$LOG"
-          exit "$status"
+          git -C "$ROOT" diff --quiet
+          git -C "$ROOT" diff --cached --quiet
+          echo "NOERITH_Q06_TASK5_WORKTREE_CLEAN=PASS"
+
+      - name: Final bounded verification marker
+        run: echo "NOERITH_Q06_TASK5_BOUNDED_VERIFY=PASS sha=$TARGET_SHA"
