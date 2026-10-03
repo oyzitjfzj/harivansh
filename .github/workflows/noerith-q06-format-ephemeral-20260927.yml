@@ -1,4 +1,4 @@
-name: NOERITH Q06 ephemeral private rustfmt handoff 20261003
+name: NOERITH Q06 ephemeral private clippy-fix handoff 20261003
 
 on:
   push:
@@ -11,15 +11,15 @@ permissions:
   contents: read
 
 concurrency:
-  group: noerith-q06-format-ephemeral-20261003
+  group: noerith-q06-clippy-fix-ephemeral-20261003
   cancel-in-progress: false
 
 jobs:
-  format:
+  fix:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
-      TARGET_SHA: ba101bd866378122e20ae4fdd728342b529b45c3
+      TARGET_SHA: c525f5f7a0bdf0984cecf543ce6ba41f6a494abd
     steps:
       - name: Checkout relay only
         uses: actions/checkout@v4
@@ -32,17 +32,19 @@ jobs:
           PRIVATE_READ_TOKEN: ${{ secrets.PRIVATE_READ_TOKEN }}
         run: bash scripts/checkout-noerith-private.sh
 
-      - name: Format private Q06 crate and encrypt to ephemeral recipient
+      - name: Apply machine suggestions privately and encrypt handoff
         shell: bash
         run: |
           set -euo pipefail
           ROOT="${RUNNER_TEMP}/noerith-private-source"
-          rustup toolchain install 1.98.1 --profile minimal --component rustfmt --no-self-update >/dev/null 2>&1
+          rustup toolchain install 1.98.1 --profile minimal --component rustfmt,clippy --no-self-update >/dev/null 2>&1
           export RUSTUP_TOOLCHAIN=1.98.1
           TMP="$(mktemp -d)"
-          cp -R "$ROOT/tools/q06-memory-context-eval" "$TMP/formatted"
-          cargo fmt --manifest-path "$TMP/formatted/Cargo.toml"
-          tar -C "$TMP/formatted" -czf "$TMP/formatted.tar.gz" src tests
+          cp -R "$ROOT/tools/q06-memory-context-eval" "$TMP/fixed"
+          cargo clippy --fix --allow-dirty --allow-staged --manifest-path "$TMP/fixed/Cargo.toml" --all-targets --locked -- -D warnings >/dev/null 2>&1
+          cargo fmt --manifest-path "$TMP/fixed/Cargo.toml"
+          cargo clippy --manifest-path "$TMP/fixed/Cargo.toml" --all-targets --locked -- -D warnings >/dev/null 2>&1
+          tar -C "$TMP/fixed" -czf "$TMP/fixed.tar.gz" src tests
           cat > "$TMP/recipient.pem" <<'CERT'
           -----BEGIN CERTIFICATE-----
           MIIELTCCApWgAwIBAgIUb9Y49esfO3NxPFTzWc+O2ezir9YwDQYJKoZIhvcNAQEL
@@ -71,20 +73,19 @@ jobs:
           -----END CERTIFICATE-----
           CERT
           sed -i 's/^          //' "$TMP/recipient.pem"
-          openssl x509 -in "$TMP/recipient.pem" -noout >/dev/null
           openssl cms -encrypt -binary -aes-256-cbc -outform DER \
             -recip "$TMP/recipient.pem" \
-            -in "$TMP/formatted.tar.gz" \
-            -out "$TMP/formatted.cms"
-          cp "$TMP/formatted.cms" "${RUNNER_TEMP}/q06-formatted-task5.cms"
-          sha256sum "${RUNNER_TEMP}/q06-formatted-task5.cms" | awk '{print "NOERITH_Q06_TASK5_FMT_CIPHER_SHA256="$1}'
+            -in "$TMP/fixed.tar.gz" \
+            -out "$TMP/fixed.cms"
+          cp "$TMP/fixed.cms" "${RUNNER_TEMP}/q06-task5-clippy-fixed.cms"
+          sha256sum "${RUNNER_TEMP}/q06-task5-clippy-fixed.cms" | awk '{print "NOERITH_Q06_TASK5_CLIPPY_FIX_CIPHER_SHA256="$1}'
           rm -rf "$TMP"
 
-      - name: Upload encrypted rustfmt handoff
+      - name: Upload encrypted clippy-fix handoff
         uses: actions/upload-artifact@v4
         with:
-          name: q06-task5-formatted-cms-20261003
-          path: ${{ runner.temp }}/q06-formatted-task5.cms
+          name: q06-task5-clippy-fixed-cms-20261003
+          path: ${{ runner.temp }}/q06-task5-clippy-fixed.cms
           if-no-files-found: error
           retention-days: 1
           compression-level: 0
