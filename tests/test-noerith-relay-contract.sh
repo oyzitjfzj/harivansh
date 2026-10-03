@@ -25,12 +25,12 @@ grep -Fq 'rm -rf "$ROOT"' "$workflow"
 # The Task-5 RED relay intentionally publishes only bounded status/error-code
 # markers. It must not upload source, raw compiler logs, or a source archive.
 if grep -Eq 'uses:[[:space:]]*actions/upload-artifact|path:.*noerith-private-source|path:.*q06-task5-red|cat[[:space:]].*\$LOG|tail[[:space:]].*\$LOG|tee[[:space:]].*\$LOG' "$workflow"; then
-  echo "NOERITH_RELAY_PRIVACY_CONTRACT_FAILED" >&2
+  echo "NOERITH_RELAY_PRIVACY_CONTRACT_FAILED=workflow-output-surface" >&2
   exit 1
 fi
 
-if grep -R -n -E 'set -x|cat .*\.log|tail .*\.log|tee .*\.log|gh .*upload' scripts; then
-  echo "NOERITH_RELAY_PRIVACY_CONTRACT_FAILED" >&2
+if grep -R -n -E 'set -x|cat .*\.log|tail .*\.log|tee .*\.log|actions/upload-artifact|gh .*upload' scripts >/dev/null; then
+  echo "NOERITH_RELAY_PRIVACY_CONTRACT_FAILED=script-output-surface" >&2
   exit 1
 fi
 
@@ -44,7 +44,7 @@ set -e
 test "$status" -eq 65
 grep -Fxq 'NOERITH_VERIFY_ACCESS_MISSING_CREDENTIAL' /tmp/noerith-missing-secret.out
 if grep -Fq 'oyzitjfzj/NOERITH.git' /tmp/noerith-missing-secret.out; then
-  echo "NOERITH_RELAY_PRIVACY_CONTRACT_FAILED" >&2
+  echo "NOERITH_RELAY_PRIVACY_CONTRACT_FAILED=credential-error-leak" >&2
   exit 1
 fi
 
