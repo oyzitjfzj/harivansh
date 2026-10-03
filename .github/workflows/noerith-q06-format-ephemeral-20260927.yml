@@ -1,15 +1,17 @@
-name: NOERITH Q06 ephemeral private rustfmt handoff 20260927
+name: NOERITH Q06 ephemeral private rustfmt handoff 20261003
 
 on:
   push:
     branches:
       - "build/noerith-private-verify-20260923"
+    paths:
+      - ".github/workflows/noerith-q06-format-ephemeral-20260927.yml"
 
 permissions:
   contents: read
 
 concurrency:
-  group: noerith-q06-format-ephemeral-20260927
+  group: noerith-q06-format-ephemeral-20261003
   cancel-in-progress: false
 
 jobs:
@@ -17,7 +19,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
-      TARGET_SHA: a605b1ddd6d9ff28411cdb24a9f48cd8e78c7475
+      TARGET_SHA: ba101bd866378122e20ae4fdd728342b529b45c3
     steps:
       - name: Checkout relay only
         uses: actions/checkout@v4
@@ -43,29 +45,29 @@ jobs:
           tar -C "$TMP/formatted" -czf "$TMP/formatted.tar.gz" src tests
           cat > "$TMP/recipient.pem" <<'CERT'
           -----BEGIN CERTIFICATE-----
-          MIIEQTCCAqmgAwIBAgIUbJZQKIyIARwXXpoDIsV57VEOC2IwDQYJKoZIhvcNAQEL
-          BQAwMDEuMCwGA1UEAwwlbm9lcml0aC1xMDYtZm9ybWF0LWVwaGVtZXJhbC0yMDI2
-          MDkyNzAeFw0yNjA5MjYyMTA0NTFaFw0yNjA5MjcyMTA0NTFaMDAxLjAsBgNVBAMM
-          JW5vZXJpdGgtcTA2LWZvcm1hdC1lcGhlbWVyYWwtMjAyNjA5MjcwggGiMA0GCSqG
-          SIb3DQEBAQUAA4IBjwAwggGKAoIBgQCXCLaXNDJ1i56/aByTN0vGmnGbxMYo2gqr
-          dXWDtuKlV8SBZDToaz4A8JJIlNgALBYqnljQwB4U1HPuh/q8I37UvQ0egMxL0di3
-          9eKxJtMZ0IEAKPnd/GT2Ds6nfI34h5RXp/CtfVSFBH/4sgndrMJ5NaNPYS6UVwgr
-          AqQ3dY42ZAf+fjIR9gAE2IMnXI019C3R6uPSWe8pmouezElJTsWMqVGD5DIuIVez
-          0ljjSuzDQat9f2WsT9sI+4vdVLqdHpAnnbvc0a4ndJSU0SKDt2nWuog41Tmhtxbs
-          pin3CBfPTzjmfHKzKiGLU/8H2PQ+ipZ6j5BN1BqIgK1quJm9JQ4mvaIU+zCGAiyu
-          H9Oq0GvQOjp9/1rlTRi4P0yulidkL2T218K0C7Y54pevYbUaXXv+QmENtub4XZJk
-          wmH8/lgsOEk7wA9tnf0D8bUJHUOZgTGDLXpCn7ZWkvi2OIR2trNdK0BHomCzvhHf
-          HUWGV3rcaVQHUdTmmZ7yHgn54MY8oNsCAwEAAaNTMFEwHQYDVR0OBBYEFHubY5AJ
-          wUGgDYkPGliJPZ4DwHslMB8GA1UdIwQYMBaAFHubY5AJwUGgDYkPGliJPZ4DwHsl
-          MA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggGBAFaLmavyuQXGWBmj
-          C9K/QFz8bJYvIB/H5XBrZkx3KEBIsRqJEIhfIBc8Gf+U68DWRfx/g123F+sa63tv
-          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
+          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
+          zY/ojQnOWNAJxEDTfRqK7P4=
           -----END CERTIFICATE-----
           CERT
           sed -i 's/^          //' "$TMP/recipient.pem"
@@ -74,15 +76,15 @@ jobs:
             -recip "$TMP/recipient.pem" \
             -in "$TMP/formatted.tar.gz" \
             -out "$TMP/formatted.cms"
-          cp "$TMP/formatted.cms" "${RUNNER_TEMP}/q06-formatted.cms"
-          sha256sum "${RUNNER_TEMP}/q06-formatted.cms" | awk '{print "NOERITH_Q06_FMT2_CIPHER_SHA256="$1}'
+          cp "$TMP/formatted.cms" "${RUNNER_TEMP}/q06-formatted-task5.cms"
+          sha256sum "${RUNNER_TEMP}/q06-formatted-task5.cms" | awk '{print "NOERITH_Q06_TASK5_FMT_CIPHER_SHA256="$1}'
           rm -rf "$TMP"
 
       - name: Upload encrypted rustfmt handoff
         uses: actions/upload-artifact@v4
         with:
-          name: q06-formatted-cms-20260927
-          path: ${{ runner.temp }}/q06-formatted.cms
+          name: q06-task5-formatted-cms-20261003
+          path: ${{ runner.temp }}/q06-formatted-task5.cms
           if-no-files-found: error
           retention-days: 1
           compression-level: 0
