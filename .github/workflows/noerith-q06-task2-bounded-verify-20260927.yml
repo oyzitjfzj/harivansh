@@ -55,6 +55,46 @@ jobs:
           rustc +1.98.1 --version
           cargo +1.98.1 --version
 
+      - name: Locate rustfmt-only differences without source disclosure
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="${RUNNER_TEMP}/noerith-private-source"
+          TMP="$(mktemp -d)"
+          cp -R "$ROOT/tools/q06-memory-context-eval" "$TMP/original"
+          cp -R "$ROOT/tools/q06-memory-context-eval" "$TMP/formatted"
+          cargo +1.98.1 fmt --manifest-path "$TMP/formatted/Cargo.toml"
+          set +e
+          diff -U0 -r "$TMP/original" "$TMP/formatted" >"$TMP/fmt.diff"
+          diff_status=$?
+          set -e
+          python3 - "$TMP/fmt.diff" <<'PY'
+          import re, sys
+          raw = open(sys.argv[1], encoding="utf-8", errors="replace").read().splitlines()
+          current = None
+          changed = 0
+          for line in raw:
+              if line.startswith('--- '):
+                  path = line[4:].split('\t', 1)[0]
+                  marker = '/original/'
+                  current = path.split(marker, 1)[1] if marker in path else path
+              elif line.startswith('@@ '):
+                  m = re.match(r'^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@', line)
+                  if m and current:
+                      old_start, old_count, new_start, new_count = m.groups()
+                      print('NOERITH_Q06_TASK5_FMT_HUNK=' + '|'.join([
+                          current,
+                          old_start,
+                          old_count or '1',
+                          new_start,
+                          new_count or '1',
+                      ]))
+                      changed += 1
+          print(f"NOERITH_Q06_TASK5_FMT_HUNK_COUNT={changed}")
+          PY
+          rm -rf "$TMP"
+          if [[ "$diff_status" -gt 1 ]]; then exit "$diff_status"; fi
+
       - name: Format check
         shell: bash
         run: |
