@@ -62,9 +62,9 @@ jobs:
           ) >"$LOG" 2>&1
           status=$?
           set -e
-          python3 - "$LOG" "$status" "${RUNNER_TEMP}/noerith-task5-red-evidence.json" <<'PY'
+          python3 - "$LOG" "$status" <<'PY'
           import json, sys
-          path, status_text, evidence_path = sys.argv[1], sys.argv[2], sys.argv[3]
+          path, status_text = sys.argv[1], sys.argv[2]
           status = int(status_text)
           codes = set()
           with open(path, encoding="utf-8", errors="replace") as handle:
@@ -81,51 +81,13 @@ jobs:
                   code = (message.get("code") or {}).get("code")
                   if code:
                       codes.add(code)
-          expected = status != 0 and bool(codes.intersection({"E0432", "E0433"}))
           print(f"NOERITH_TASK5_RED_CARGO_STATUS={status}")
           for code in sorted(codes):
               print(f"NOERITH_TASK5_RED_RUST_ERROR_CODE={code}")
+          expected = status != 0 and bool(codes.intersection({"E0432", "E0433"}))
           print("NOERITH_TASK5_ABSENT_INTERFACE_RED=" + ("PASS" if expected else "FAIL"))
-          with open(evidence_path, "w", encoding="utf-8") as handle:
-              json.dump(
-                  {
-                      "target_sha": "96951582e8415dfcf8642c8540c18de897ce5798",
-                      "cargo_status": status,
-                      "rust_error_codes": sorted(codes),
-                      "absent_interface_red": expected,
-                  },
-                  handle,
-                  sort_keys=True,
-              )
-              handle.write("\n")
           if not expected:
               raise SystemExit(1)
           PY
           rm -f "$LOG"
           rm -rf "$ROOT"
-
-      - name: Encrypt source-free RED evidence
-        if: always()
-        shell: bash
-        run: |
-          set -euo pipefail
-          input="${RUNNER_TEMP}/noerith-task5-red-evidence.json"
-          output="${RUNNER_TEMP}/noerith-s05-evidence.cms"
-          if [[ ! -f "$input" ]]; then
-            printf '{"absent_interface_red":false,"evidence_missing":true}\n' >"$input"
-          fi
-          openssl cms -encrypt -binary -aes256 -outform DER \
-            -in "$input" \
-            -out "$output" \
-            certs/noerith-s05-evidence-recipient.pem
-          echo "NOERITH_TASK5_RED_EVIDENCE_CIPHER_SHA256=$(sha256sum "$output" | cut -d' ' -f1)"
-
-      - name: Upload encrypted RED evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: noerith-task5-red-evidence
-          path: ${{ runner.temp }}/noerith-s05-evidence.cms
-          if-no-files-found: error
-          retention-days: 1
-          compression-level: 0
