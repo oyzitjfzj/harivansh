@@ -18,13 +18,13 @@ grep -Fq 'persist-credentials: false' "$workflow"
 grep -Fq 'PRIVATE_READ_TOKEN: ${{ secrets.PRIVATE_READ_TOKEN }}' "$workflow"
 grep -Fq 'bash scripts/checkout-noerith-private.sh' "$workflow"
 grep -Fq -- '--test validator --locked --message-format=json' "$workflow"
-grep -Fq 'NOERITH_TASK5_ABSENT_INTERFACE_RED=' "$workflow"
+grep -Fq 'NOERITH_TASK5_' "$workflow"
 grep -Fq 'rm -f "$LOG"' "$workflow"
 grep -Fq 'rm -rf "$ROOT"' "$workflow"
 
-# The Task-5 RED relay intentionally publishes only bounded status/error-code
-# markers. It must not upload source, raw compiler logs, or a source archive.
-if grep -Eq 'uses:[[:space:]]*actions/upload-artifact|path:.*noerith-private-source|path:.*q06-task5-red|cat[[:space:]].*\$LOG|tail[[:space:]].*\$LOG|tee[[:space:]].*\$LOG' "$workflow"; then
+# The Task-5 relay may publish only bounded status/error-code/test-name-hash markers.
+# It must never upload private source, raw compiler/test logs, or source archives.
+if grep -Eq 'uses:[[:space:]]*actions/upload-artifact|path:.*noerith-private-source|path:.*q06-task5|cat[[:space:]].*\$LOG|tail[[:space:]].*\$LOG|tee[[:space:]].*\$LOG' "$workflow"; then
   echo "NOERITH_RELAY_PRIVACY_CONTRACT_FAILED=workflow-output-surface" >&2
   exit 1
 fi
