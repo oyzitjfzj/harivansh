@@ -35,9 +35,9 @@ jobs:
           cargo +1.98.1 clippy --manifest-path "$ROOT/$Q06_MANIFEST" --all-targets --locked --message-format=json -- -D warnings >"$LOG" 2>&1
           status=$?
           set -e
-          python3 - "$LOG" "$ROOT" <<'PY'
-          import json, os, sys
-          log, root = sys.argv[1], sys.argv[2]
+          python3 - "$LOG" "$ROOT" "$status" <<'PY'
+          import json, sys
+          log, root, status = sys.argv[1], sys.argv[2], sys.argv[3]
           seen=set()
           for line in open(log,encoding='utf-8',errors='replace'):
               try: event=json.loads(line)
@@ -55,7 +55,7 @@ jobs:
                   seen.add(row)
                   print('NOERITH_Q06_TASK5_CLIPPY_LOC='+'|'.join(map(str,row)))
           print(f'NOERITH_Q06_TASK5_CLIPPY_LOC_COUNT={len(seen)}')
-          print(f'NOERITH_Q06_TASK5_CLIPPY_EXIT={status_placeholder}')
+          print(f'NOERITH_Q06_TASK5_CLIPPY_EXIT={status}')
           PY
           rm -f "$LOG"
           exit "$status"
